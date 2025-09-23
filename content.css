@@ -1,0 +1,76 @@
+/* Styles for JugiTube content script */
+
+#jugitube-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  position: relative;
+}
+
+.jugitube-audio-only {
+  text-align: center;
+  color: white;
+  padding: 40px;
+}
+
+.jugitube-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: pulse 2s infinite;
+}
+
+.jugitube-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.jugitube-subtitle {
+  font-size: 18px;
+  opacity: 0.9;
+  margin-bottom: 10px;
+}
+
+.jugitube-note {
+  font-size: 16px;
+  opacity: 0.8;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px 20px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 20px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Hide video controls styling when video is hidden */
+.jugitube-active .ytp-chrome-bottom {
+  background: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Ensure the placeholder fits properly in different YouTube layouts */
+#jugitube-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}

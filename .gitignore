@@ -1,0 +1,21 @@
+# Temporary files
+*.tmp
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Browser extension development
+web-ext-artifacts/
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
