@@ -8,10 +8,15 @@ class JugiTube {
     this.videoElement = null;
     this.originalVideoDisplay = '';
     this.lyricsInterval = null;
-    
+    this.domObserver = null;
+    this.navigationListener = null;
+    this.navigationListenerAttached = false;
+    this.lyricsReloadTimeout = null;
+    this.placeholderElement = null;
+
     this.init();
   }
-  
+
   async init() {
     // Check if extension is enabled
     const result = await chrome.storage.sync.get(['enabled']);
@@ -36,56 +41,143 @@ class JugiTube {
   
   activate() {
     console.log('JugiTube activated');
-    this.blockVideo();
+    this.attachNavigationListeners();
+    this.ensureVideoMonitoring();
     this.createLyricsWindow();
+    this.scheduleLyricsRefresh(true);
     this.startLyricsSync();
   }
-  
+
   deactivate() {
     console.log('JugiTube deactivated');
+    this.detachNavigationListeners();
+    this.disconnectVideoMonitoring();
     this.unblockVideo();
+    this.videoElement = null;
+    this.originalVideoDisplay = '';
     this.closeLyricsWindow();
     this.stopLyricsSync();
   }
-  
-  blockVideo() {
-    // Find the video element
-    this.videoElement = document.querySelector('video');
-    if (this.videoElement) {
-      // Hide the video but keep audio playing
-      this.originalVideoDisplay = this.videoElement.style.display;
-      this.videoElement.style.display = 'none';
-      
-      // Create a placeholder element
-      const videoContainer = this.videoElement.parentElement;
-      if (videoContainer && !document.getElementById('jugitube-placeholder')) {
-        const placeholder = document.createElement('div');
-        placeholder.id = 'jugitube-placeholder';
-        placeholder.innerHTML = `
-          <div class="jugitube-audio-only">
-            <div class="jugitube-icon">🎵</div>
-            <div class="jugitube-title">Audio Only Mode</div>
-            <div class="jugitube-subtitle">Video is hidden - Audio continues playing</div>
-            <div class="jugitube-note">Check the lyrics popup window!</div>
-          </div>
-        `;
-        videoContainer.appendChild(placeholder);
+
+  ensureVideoMonitoring() {
+    if (this.domObserver) {
+      return;
+    }
+
+    const handleVideoChange = () => {
+      const { changed, hasVideo } = this.updateVideoElement();
+      if (changed) {
+        this.startLyricsSync();
+        this.scheduleLyricsRefresh();
+      } else if (hasVideo && this.videoElement && this.videoElement.style.display !== 'none') {
+        // Ensure the video stays hidden even if YouTube tweaks the DOM.
+        this.videoElement.style.display = 'none';
       }
+    };
+
+    this.domObserver = new MutationObserver(() => {
+      if (!this.isEnabled) {
+        return;
+      }
+      handleVideoChange();
+    });
+
+    this.domObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    handleVideoChange();
+  }
+
+  updateVideoElement() {
+    if (!this.isEnabled) {
+      return { changed: false, hasVideo: !!this.videoElement };
+    }
+
+    const video = document.querySelector('video');
+
+    if (!video) {
+      if (this.videoElement) {
+        this.unblockVideo(this.videoElement);
+        this.videoElement = null;
+      }
+      return { changed: false, hasVideo: false };
+    }
+
+    const previousVideo = this.videoElement;
+    const isNewVideo = previousVideo !== video;
+
+    if (isNewVideo && previousVideo) {
+      this.unblockVideo(previousVideo);
+    }
+
+    this.videoElement = video;
+    if (isNewVideo) {
+      this.originalVideoDisplay = video.style.display;
+    }
+
+    this.applyPlaceholder(video);
+
+    return { changed: isNewVideo, hasVideo: true };
+  }
+
+  applyPlaceholder(video) {
+    if (!video) {
+      return;
+    }
+
+    video.style.display = 'none';
+
+    const videoContainer = video.parentElement;
+    if (!videoContainer) {
+      return;
+    }
+
+    if (this.placeholderElement && this.placeholderElement.parentElement !== videoContainer) {
+      this.placeholderElement.remove();
+      this.placeholderElement = null;
+    }
+
+    if (!this.placeholderElement) {
+      const placeholder = document.createElement('div');
+      placeholder.id = 'jugitube-placeholder';
+      placeholder.innerHTML = `
+        <div class="jugitube-audio-only">
+          <div class="jugitube-icon">🎵</div>
+          <div class="jugitube-title">Audio Only Mode</div>
+          <div class="jugitube-subtitle">Video is hidden - Audio continues playing</div>
+          <div class="jugitube-note">Check the lyrics popup window!</div>
+        </div>
+      `;
+      videoContainer.appendChild(placeholder);
+      this.placeholderElement = placeholder;
     }
   }
-  
-  unblockVideo() {
-    if (this.videoElement) {
-      this.videoElement.style.display = this.originalVideoDisplay;
+
+  unblockVideo(targetVideo = this.videoElement) {
+    if (targetVideo) {
+      targetVideo.style.display = this.originalVideoDisplay;
     }
-    
-    // Remove placeholder
-    const placeholder = document.getElementById('jugitube-placeholder');
-    if (placeholder) {
-      placeholder.remove();
+
+    if (this.placeholderElement) {
+      this.placeholderElement.remove();
+      this.placeholderElement = null;
     }
   }
-  
+
+  disconnectVideoMonitoring() {
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+      this.domObserver = null;
+    }
+
+    if (this.lyricsReloadTimeout) {
+      clearTimeout(this.lyricsReloadTimeout);
+      this.lyricsReloadTimeout = null;
+    }
+  }
+
   createLyricsWindow() {
     if (this.lyricsWindow && !this.lyricsWindow.closed) {
       this.lyricsWindow.close();
@@ -97,10 +189,10 @@ class JugiTube {
     
     if (this.lyricsWindow) {
       this.setupLyricsWindow();
-      this.loadLyrics();
+      this.scheduleLyricsRefresh(true);
     }
   }
-  
+
   setupLyricsWindow() {
     if (!this.lyricsWindow) return;
     
@@ -197,7 +289,7 @@ class JugiTube {
     // Get video title and artist from page
     const titleElement = document.querySelector('h1.title yt-formatted-string, h1 yt-formatted-string');
     const title = titleElement ? titleElement.textContent.trim() : 'Unknown Title';
-    
+
     // Try to extract artist from title (basic parsing)
     let artist = 'Unknown Artist';
     const titleParts = title.split(' - ');
@@ -230,10 +322,31 @@ class JugiTube {
       this.showNoLyrics();
     }
   }
-  
+
+  scheduleLyricsRefresh(immediate = false) {
+    if (this.lyricsReloadTimeout) {
+      clearTimeout(this.lyricsReloadTimeout);
+      this.lyricsReloadTimeout = null;
+    }
+
+    if (!this.isEnabled) {
+      return;
+    }
+
+    if (immediate) {
+      this.loadLyrics();
+      return;
+    }
+
+    this.lyricsReloadTimeout = setTimeout(() => {
+      this.lyricsReloadTimeout = null;
+      this.loadLyrics();
+    }, 300);
+  }
+
   displayLyrics() {
     if (!this.lyricsWindow || this.lyricsWindow.closed) return;
-    
+
     const container = this.lyricsWindow.document.getElementById('lyrics-container');
     if (!container) return;
     
@@ -320,6 +433,41 @@ class JugiTube {
       this.lyricsWindow.close();
     }
     this.lyricsWindow = null;
+  }
+
+  attachNavigationListeners() {
+    if (this.navigationListenerAttached) {
+      return;
+    }
+
+    this.navigationListener = () => {
+      if (!this.isEnabled) {
+        return;
+      }
+
+      const { changed } = this.updateVideoElement();
+      if (changed) {
+        this.startLyricsSync();
+      }
+      this.scheduleLyricsRefresh();
+    };
+
+    window.addEventListener('yt-navigate-finish', this.navigationListener);
+    document.addEventListener('yt-page-data-updated', this.navigationListener);
+    window.addEventListener('popstate', this.navigationListener);
+    this.navigationListenerAttached = true;
+  }
+
+  detachNavigationListeners() {
+    if (!this.navigationListenerAttached || !this.navigationListener) {
+      return;
+    }
+
+    window.removeEventListener('yt-navigate-finish', this.navigationListener);
+    document.removeEventListener('yt-page-data-updated', this.navigationListener);
+    window.removeEventListener('popstate', this.navigationListener);
+    this.navigationListenerAttached = false;
+    this.navigationListener = null;
   }
 }
 
