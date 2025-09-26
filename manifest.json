@@ -10,7 +10,9 @@
   ],
   "host_permissions": [
     "*://*.youtube.com/*",
-    "*://*.googleapis.com/*"
+    "*://*.googleapis.com/*",
+    "https://lrclib.net/*",
+    "https://api.lyrics.ovh/*"
   ],
   "content_scripts": [
     {
