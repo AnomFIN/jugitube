@@ -28,23 +28,162 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getLyrics') {
-    // This would typically call a lyrics API
-    // For now, we'll return mock lyrics
-    const mockLyrics = generateMockLyrics(request.title, request.artist);
-    sendResponse({ lyrics: mockLyrics });
-    return true; // Keep message channel open for async response
+    handleLyricsRequest(request)
+      .then((lyricsResponse) => {
+        sendResponse(lyricsResponse);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch lyrics:', error);
+        sendResponse({ lyrics: [], error: 'Lyrics not available right now.' });
+      });
+
+    return true; // Keep the channel open for the async response
   }
 });
 
-function generateMockLyrics(title, artist) {
-  // Mock lyrics data with timestamps (in seconds)
-  return [
-    { time: 0, text: "♪ Loading lyrics..." },
-    { time: 5, text: "♪ This is a sample lyric line" },
-    { time: 10, text: "♪ Karaoke style lyrics display" },
-    { time: 15, text: "♪ Synchronized with the music" },
-    { time: 20, text: "♪ For " + (title || "this song") },
-    { time: 25, text: "♪ By " + (artist || "unknown artist") },
-    { time: 30, text: "♪ Enjoy your audio experience!" }
+async function handleLyricsRequest({ title, artist }) {
+  const cleanTitle = sanitizeTitle(title);
+  const cleanArtist = sanitizeArtist(artist);
+
+  const lyricsText = await fetchLyricsFromProviders(cleanTitle, cleanArtist);
+
+  if (!lyricsText) {
+    return {
+      lyrics: [],
+      error: 'No lyrics could be located for this track.'
+    };
+  }
+
+  const parsedLyrics = Array.isArray(lyricsText)
+    ? lyricsText
+    : parseLyricsText(lyricsText);
+
+  return {
+    lyrics: parsedLyrics
+  };
+}
+
+async function fetchLyricsFromProviders(title, artist) {
+  const providers = [
+    () => fetchFromLrclib(title, artist),
+    () => fetchFromLyricsOvh(title, artist)
   ];
+
+  for (const provider of providers) {
+    try {
+      const result = await provider();
+      if (result && ((Array.isArray(result) && result.length) || (typeof result === 'string' && result.trim()))) {
+        return result;
+      }
+    } catch (error) {
+      console.warn('Lyrics provider failed:', error);
+    }
+  }
+
+  return null;
+}
+
+async function fetchFromLrclib(title, artist) {
+  if (!title && !artist) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  if (title) params.append('track_name', title);
+  if (artist) params.append('artist_name', artist);
+
+  const response = await fetch(`https://lrclib.net/api/get?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`LRCLib request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.syncedLyrics) {
+    const parsed = parseSyncedLyrics(data.syncedLyrics);
+    if (parsed.length) {
+      return parsed;
+    }
+  }
+
+  if (data.plainLyrics) {
+    return data.plainLyrics;
+  }
+
+  return null;
+}
+
+async function fetchFromLyricsOvh(title, artist) {
+  if (!title || !artist) {
+    return null;
+  }
+
+  const requestArtist = artist;
+  const requestTitle = title;
+  const encodedArtist = encodeURIComponent(requestArtist);
+  const encodedTitle = encodeURIComponent(requestTitle);
+  const endpoint = `https://api.lyrics.ovh/v1/${encodedArtist}/${encodedTitle}`;
+
+  const response = await fetch(endpoint);
+
+  if (!response.ok) {
+    throw new Error(`Lyrics.ovh request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.lyrics || null;
+}
+
+function parseSyncedLyrics(lrcText) {
+  const lines = [];
+  const regex = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,2}))?\](.*)/g;
+
+  lrcText.split(/\r?\n/).forEach((line) => {
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      const minutes = parseInt(match[1], 10);
+      const seconds = parseInt(match[2], 10);
+      const hundredths = match[3] ? parseInt(match[3], 10) : 0;
+      const totalSeconds = minutes * 60 + seconds + hundredths / 100;
+      const text = match[4].trim();
+      if (text) {
+        lines.push({ time: totalSeconds, text });
+      }
+    }
+  });
+
+  lines.sort((a, b) => a.time - b.time);
+  return lines;
+}
+
+function parseLyricsText(lyricsText) {
+  return lyricsText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line, index) => ({
+      time: index * 4,
+      text: line
+    }));
+}
+
+function sanitizeTitle(title) {
+  if (!title) return '';
+  return title
+    .replace(/\(official.*?\)/gi, '')
+    .replace(/\[.*?\]/g, '')
+    .replace(/lyrics?/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sanitizeArtist(artist) {
+  if (!artist || artist.toLowerCase().includes('unknown')) {
+    return '';
+  }
+
+  return artist
+    .replace(/\s+/g, ' ')
+    .trim();
 }

@@ -13,19 +13,49 @@
     }
     
     .header {
-      text-align: center;
-      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
     }
-    
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 12px 20px;
+      border-radius: 999px;
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    .logo-img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      object-fit: cover;
+    }
+
     .logo {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
     }
-    
+
     .subtitle {
       font-size: 12px;
-      opacity: 0.8;
+      opacity: 0.85;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+    }
+
+    .anomsign {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      opacity: 0.7;
     }
     
     .toggle-container {
@@ -126,8 +156,12 @@
 </head>
 <body>
   <div class="header">
-    <div class="logo">🎵 JugiTube</div>
-    <div class="subtitle">Audio-Only YouTube with Live Lyrics</div>
+    <div class="brand-lockup">
+      <img src="logo.png" alt="AnomFIN Tools logo" class="logo-img">
+      <div class="logo">AnomFIN Tools · JugiTube</div>
+    </div>
+    <div class="subtitle">Audio only- tube · Powered by AnomTools</div>
+    <div class="anomsign">Made by: Jugi @ AnomFIN</div>
   </div>
   
   <div class="toggle-container">
