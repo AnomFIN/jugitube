@@ -2,7 +2,18 @@
 class JugiTube {
   constructor() {
     this.isEnabled = false;
-    this.lyricsWindow = null;
+    this.lyricsElements = {
+      root: null,
+      panel: null,
+      title: null,
+      artist: null,
+      status: null,
+      statusText: null,
+      lines: null,
+      toggle: null,
+      dragHandle: null,
+      brandLogo: null
+    };
     this.currentLyrics = [];
     this.startTime = 0;
     this.videoElement = null;
@@ -13,21 +24,42 @@ class JugiTube {
     this.navigationListenerAttached = false;
     this.lyricsReloadTimeout = null;
     this.placeholderElement = null;
+    this.lyricLineElements = [];
+    this.lyricsPosition = null;
+    this.lyricsRequestToken = 0;
+    this.activeVideoId = null;
+    this.dragState = null;
+    this.lyricsCache = new Map();
+    this.boundLyricsPointerMove = this.onLyricsPointerMove.bind(this);
+    this.boundLyricsPointerUp = this.onLyricsPointerUp.bind(this);
+    this.boundHandleResize = this.handleWindowResize.bind(this);
+    this.customAssets = {
+      background: null,
+      logo: null
+    };
+    this.defaultLogoUrl = chrome.runtime.getURL('logo.png');
 
     this.init();
   }
 
   async init() {
     // Check if extension is enabled
-    const result = await chrome.storage.sync.get(['enabled']);
-    this.isEnabled = result.enabled || false;
-    
+    const [syncState, assets] = await Promise.all([
+      chrome.storage.sync.get(['enabled']),
+      chrome.storage.local.get(['customBackground', 'customLogo', 'lyricsConsolePosition'])
+    ]);
+
+    this.isEnabled = syncState.enabled || false;
+    this.customAssets.background = assets.customBackground || null;
+    this.customAssets.logo = assets.customLogo || null;
+    this.lyricsPosition = assets.lyricsConsolePosition || null;
+
     if (this.isEnabled) {
       this.activate();
     }
-    
+
     // Listen for messages from popup
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request) => {
       if (request.action === 'toggleJugiTube') {
         this.isEnabled = request.enabled;
         if (this.isEnabled) {
@@ -37,13 +69,36 @@ class JugiTube {
         }
       }
     });
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') {
+        return;
+      }
+
+      let brandingChanged = false;
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
+        this.customAssets.background = changes.customBackground.newValue || null;
+        brandingChanged = true;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'customLogo')) {
+        this.customAssets.logo = changes.customLogo.newValue || null;
+        brandingChanged = true;
+      }
+
+      if (brandingChanged) {
+        this.updatePlaceholderAssets();
+        this.applyBrandingToLyricsWindow();
+      }
+    });
   }
   
   activate() {
     console.log('JugiTube activated');
     this.attachNavigationListeners();
     this.ensureVideoMonitoring();
-    this.createLyricsWindow();
+    this.ensureLyricsUi();
     this.scheduleLyricsRefresh(true);
     this.startLyricsSync();
   }
@@ -55,6 +110,10 @@ class JugiTube {
     this.unblockVideo();
     this.videoElement = null;
     this.originalVideoDisplay = '';
+    this.lyricsRequestToken += 1;
+    this.currentLyrics = [];
+    this.lyricLineElements = [];
+    this.activeVideoId = null;
     this.closeLyricsWindow();
     this.stopLyricsSync();
   }
@@ -139,7 +198,7 @@ class JugiTube {
       this.placeholderElement = null;
     }
 
-    const logoUrl = chrome.runtime.getURL('logo.png');
+    const { logoUrl } = this.getAssetUrls();
 
     if (!this.placeholderElement) {
       const placeholder = document.createElement('div');
@@ -149,25 +208,61 @@ class JugiTube {
           <div class="jugitube-floating-logo jugitube-floating-logo--one"></div>
           <div class="jugitube-floating-logo jugitube-floating-logo--two"></div>
           <div class="jugitube-audio-only">
-            <div class="jugitube-brand-badge">
-              <img src="${logoUrl}" alt="AnomFIN Tools logo" class="jugitube-logo-img" />
-              <div class="jugitube-brand-text">
-                <span class="jugitube-brand-primary">AnomFIN Tools</span>
-                <span class="jugitube-brand-secondary">Audio only- tube</span>
-              </div>
+              <div class="jugitube-brand-badge">
+                <img src="${logoUrl}" alt="AnomFIN Tools logo" class="jugitube-logo-img" />
+                <div class="jugitube-brand-text">
+                  <span class="jugitube-brand-primary">AnomFIN Tools</span>
+                  <span class="jugitube-brand-secondary">Audio only- tube</span>
+                </div>
             </div>
             <div class="jugitube-title">Audio Only Mode</div>
             <div class="jugitube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</div>
-            <div class="jugitube-note">Lyrics stream live inside the AnomFIN karaoke console window.</div>
+            <div class="jugitube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</div>
             <div class="jugitube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></div>
           </div>
         </div>
       `;
-      placeholder.style.setProperty('--jugitube-logo', `url("${logoUrl}")`);
       videoContainer.appendChild(placeholder);
       this.placeholderElement = placeholder;
-    } else {
-      this.placeholderElement.style.setProperty('--jugitube-logo', `url("${logoUrl}")`);
+    }
+
+    this.updatePlaceholderAssets();
+  }
+
+  getAssetUrls() {
+    const logoUrl = this.customAssets.logo || this.defaultLogoUrl;
+    const backgroundUrl = this.customAssets.background || this.customAssets.logo || this.defaultLogoUrl;
+    return { logoUrl, backgroundUrl };
+  }
+
+  updatePlaceholderAssets() {
+    if (!this.placeholderElement) {
+      return;
+    }
+
+    const { logoUrl, backgroundUrl } = this.getAssetUrls();
+    this.placeholderElement.style.setProperty('--jugitube-logo', `url("${logoUrl}")`);
+    this.placeholderElement.style.setProperty('--jugitube-background', `url("${backgroundUrl}")`);
+
+    const logoImg = this.placeholderElement.querySelector('.jugitube-logo-img');
+    if (logoImg) {
+      logoImg.src = logoUrl;
+    }
+  }
+
+  applyBrandingToLyricsWindow() {
+    if (!this.lyricsElements.root) {
+      return;
+    }
+
+    const { logoUrl, backgroundUrl } = this.getAssetUrls();
+    const root = this.lyricsElements.root;
+
+    root.style.setProperty('--anomfin-logo', `url("${logoUrl}")`);
+    root.style.setProperty('--anomfin-background', `url("${backgroundUrl}")`);
+
+    if (this.lyricsElements.brandLogo) {
+      this.lyricsElements.brandLogo.src = logoUrl;
     }
   }
 
@@ -194,257 +289,496 @@ class JugiTube {
     }
   }
 
-  createLyricsWindow() {
-    if (this.lyricsWindow && !this.lyricsWindow.closed) {
-      this.lyricsWindow.close();
+  ensureLyricsUi() {
+    if (this.lyricsElements.root && document.body && document.body.contains(this.lyricsElements.root)) {
+      this.applyBrandingToLyricsWindow();
+      return;
     }
-    
-    // Create popup window for lyrics
-    const windowFeatures = 'width=400,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no';
-    this.lyricsWindow = window.open('', 'JugiTubeLyrics', windowFeatures);
-    
-    if (this.lyricsWindow) {
-      this.setupLyricsWindow();
-      this.scheduleLyricsRefresh(true);
+
+    if (!document.body) {
+      return;
+    }
+
+    const { logoUrl } = this.getAssetUrls();
+    const root = document.createElement('aside');
+    root.id = 'anomfin-lyrics-console';
+    root.className = 'anomfin-lyrics';
+    root.setAttribute('role', 'complementary');
+    root.setAttribute('aria-label', 'AnomFIN Tools karaoke console');
+
+    root.innerHTML = `
+      <div class="anomfin-lyrics__panel">
+        <div class="anomfin-lyrics__branding" data-role="drag-handle">
+          <div class="anomfin-lyrics__brand-block">
+            <img src="${logoUrl}" alt="AnomFIN Tools logo" class="anomfin-lyrics__logo" />
+            <div class="anomfin-lyrics__brand-copy">
+              <span class="anomfin-lyrics__brand-title">AnomFIN Tools</span>
+              <span class="anomfin-lyrics__brand-subtitle">AnomTools Karaoke Console</span>
+            </div>
+          </div>
+          <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota karaoke</button>
+        </div>
+        <div class="anomfin-lyrics__meta">
+          <div class="anomfin-lyrics__song" data-role="title">🎵 JugiTube Lyrics</div>
+          <div class="anomfin-lyrics__artist" data-role="artist">Karaoke Mode Active</div>
+        </div>
+        <div class="anomfin-lyrics__status" data-role="status" data-variant="loading" role="status" aria-live="polite">
+          <span class="anomfin-lyrics__status-dot"></span>
+          <span class="anomfin-lyrics__status-text" data-role="status-text">AnomFIN analysoi kappaletta…</span>
+        </div>
+        <div class="anomfin-lyrics__body">
+          <div class="anomfin-lyrics__lines" data-role="lines" role="list" tabindex="0"></div>
+        </div>
+        <div class="anomfin-lyrics__footer">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></div>
+      </div>
+    `;
+
+    document.body.appendChild(root);
+
+    this.lyricsElements = {
+      root,
+      panel: root.querySelector('.anomfin-lyrics__panel'),
+      title: root.querySelector('[data-role="title"]'),
+      artist: root.querySelector('[data-role="artist"]'),
+      status: root.querySelector('[data-role="status"]'),
+      statusText: root.querySelector('[data-role="status-text"]'),
+      lines: root.querySelector('[data-role="lines"]'),
+      toggle: root.querySelector('[data-role="toggle"]'),
+      dragHandle: root.querySelector('[data-role="drag-handle"]'),
+      brandLogo: root.querySelector('.anomfin-lyrics__logo')
+    };
+
+    this.lyricLineElements = [];
+
+    this.renderLyricsPlaceholder('AnomFIN analysoi kappaletta…', 'loading');
+    this.updateLyricsStatus('AnomFIN analysoi kappaletta…', 'loading');
+
+    if (this.lyricsElements.toggle) {
+      this.lyricsElements.toggle.addEventListener('click', () => {
+        const collapsed = root.classList.toggle('anomfin-lyrics--collapsed');
+        this.lyricsElements.toggle.textContent = collapsed ? 'Avaa karaoke' : 'Piilota karaoke';
+        this.lyricsElements.toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        if (!collapsed) {
+          this.handleWindowResize();
+        }
+      });
+    }
+
+    if (this.lyricsElements.dragHandle) {
+      this.lyricsElements.dragHandle.addEventListener('pointerdown', (event) => this.onLyricsPointerDown(event));
+    }
+
+    window.addEventListener('resize', this.boundHandleResize);
+
+    if (this.lyricsPosition) {
+      this.setLyricsPosition(this.lyricsPosition, { skipPersist: true });
+    }
+
+    this.applyBrandingToLyricsWindow();
+  }
+
+  renderLyricsPlaceholder(message, mode = 'loading') {
+    if (!this.lyricsElements.lines) {
+      return;
+    }
+
+    const variants = {
+      loading: 'anomfin-lyrics__placeholder--loading',
+      empty: 'anomfin-lyrics__placeholder--empty',
+      error: 'anomfin-lyrics__placeholder--error'
+    };
+
+    const placeholderClass = variants[mode] || variants.loading;
+    const container = this.lyricsElements.lines;
+    container.innerHTML = '';
+
+    const placeholder = document.createElement('div');
+    placeholder.className = `anomfin-lyrics__placeholder ${placeholderClass}`;
+    placeholder.textContent = message;
+    container.appendChild(placeholder);
+
+    this.lyricLineElements = [];
+  }
+
+  updateLyricsStatus(message, variant = 'info') {
+    if (!this.lyricsElements.status) {
+      return;
+    }
+
+    const allowed = new Set(['loading', 'ready', 'error', 'empty', 'info']);
+    const appliedVariant = allowed.has(variant) ? variant : 'info';
+    this.lyricsElements.status.setAttribute('data-variant', appliedVariant);
+
+    const textEl = this.lyricsElements.statusText || this.lyricsElements.status.querySelector('[data-role="status-text"]');
+    if (textEl) {
+      textEl.textContent = message;
     }
   }
 
-  setupLyricsWindow() {
-    if (!this.lyricsWindow) return;
+  updateLyricsHeader(title, artist) {
+    if (this.lyricsElements.title) {
+      const resolvedTitle = title || 'Unknown Title';
+      this.lyricsElements.title.textContent = resolvedTitle;
+      this.lyricsElements.title.setAttribute('title', resolvedTitle);
+    }
 
-    const logoUrl = chrome.runtime.getURL('logo.png');
+    if (this.lyricsElements.artist) {
+      const resolvedArtist = artist || 'Unknown Artist';
+      this.lyricsElements.artist.textContent = resolvedArtist;
+      this.lyricsElements.artist.setAttribute('title', resolvedArtist);
+    }
+  }
 
-    this.lyricsWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>AnomFIN Tools · JugiTube Lyrics Suite</title>
-        <style>
-          :root {
-            --anomfin-logo: url('${logoUrl}');
-          }
+  setLyricsPosition(position, { skipPersist = false } = {}) {
+    if (!this.lyricsElements.root) {
+      return;
+    }
 
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: radial-gradient(circle at top left, rgba(103, 58, 183, 0.9), rgba(33, 150, 243, 0.6));
-            background-image: linear-gradient(135deg, rgba(18, 32, 68, 0.65), rgba(8, 12, 34, 0.9)), var(--anomfin-logo);
-            background-size: cover;
-            background-position: center;
-            color: #f8f9ff;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            box-sizing: border-box;
-            position: relative;
-            overflow: hidden;
-          }
+    const panel = this.lyricsElements.panel || this.lyricsElements.root;
+    const width = panel.offsetWidth || this.lyricsElements.root.offsetWidth || 360;
+    const height = panel.offsetHeight || this.lyricsElements.root.offsetHeight || 420;
 
-          body::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.4) 70%);
-            mix-blend-mode: screen;
-            opacity: 0.85;
-            pointer-events: none;
-          }
+    const maxLeft = Math.max(window.innerWidth - width - 16, 0);
+    const maxTop = Math.max(window.innerHeight - height - 16, 0);
 
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-            padding-bottom: 20px;
-            position: relative;
-            z-index: 1;
-          }
+    const left = Math.min(Math.max(position.left, 16), maxLeft);
+    const top = Math.min(Math.max(position.top, 16), maxTop);
 
-          .brand-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(15, 23, 42, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 12px 20px;
-            border-radius: 999px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
-            backdrop-filter: blur(12px);
-          }
+    this.lyricsElements.root.style.left = `${left}px`;
+    this.lyricsElements.root.style.top = `${top}px`;
+    this.lyricsElements.root.style.right = 'auto';
+    this.lyricsElements.root.style.bottom = 'auto';
 
-          .brand-logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.6);
-            object-fit: cover;
-          }
+    if (!skipPersist) {
+      this.lyricsPosition = { left, top };
+      const result = chrome.storage?.local?.set?.({ lyricsConsolePosition: this.lyricsPosition });
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {});
+      }
+    }
+  }
 
-          .brand-text {
-            display: flex;
-            flex-direction: column;
-            text-align: left;
-          }
+  onLyricsPointerDown(event) {
+    if (!this.lyricsElements.root || event.button !== 0) {
+      return;
+    }
 
-          .brand-title {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-          }
+    event.preventDefault();
 
-          .brand-subtitle {
-            font-size: 13px;
-            opacity: 0.75;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-          }
+    const rect = this.lyricsElements.root.getBoundingClientRect();
+    this.dragState = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
 
-          .title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 24px;
-            margin-bottom: 10px;
-            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-          }
+    if (event.currentTarget && typeof event.currentTarget.setPointerCapture === 'function') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
 
-          .artist {
-            font-size: 18px;
-            opacity: 0.85;
-            letter-spacing: 0.4px;
-          }
+    this.lyricsElements.root.classList.add('anomfin-lyrics--dragging');
 
-          .decor-line {
-            margin: 30px auto;
-            width: 60%;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
-          }
+    document.addEventListener('pointermove', this.boundLyricsPointerMove);
+    document.addEventListener('pointerup', this.boundLyricsPointerUp);
+    document.addEventListener('pointercancel', this.boundLyricsPointerUp);
+  }
 
-          .lyrics-container {
-            text-align: center;
-            line-height: 1.8;
-            position: relative;
-            z-index: 1;
-          }
+  onLyricsPointerMove(event) {
+    if (!this.dragState || event.pointerId !== this.dragState.pointerId) {
+      return;
+    }
 
-          .lyric-line {
-            font-size: 20px;
-            margin: 15px 0;
-            padding: 10px;
-            border-radius: 10px;
-            transition: all 0.5s ease;
-            opacity: 0.5;
-            background: rgba(13, 25, 54, 0.45);
-            border: 1px solid transparent;
-          }
+    const left = event.clientX - this.dragState.offsetX;
+    const top = event.clientY - this.dragState.offsetY;
+    this.setLyricsPosition({ left, top }, { skipPersist: true });
+  }
 
-          .lyric-line.current {
-            background: rgba(46, 101, 255, 0.35);
-            opacity: 1;
-            transform: scale(1.05) translateZ(0);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 215, 0, 0.6);
-          }
+  onLyricsPointerUp(event) {
+    if (!this.dragState || event.pointerId !== this.dragState.pointerId) {
+      return;
+    }
 
-          .lyric-line.next {
-            opacity: 0.8;
-            border-color: rgba(255, 255, 255, 0.15);
-          }
+    let left = event.clientX;
+    let top = event.clientY;
 
-          .no-lyrics {
-            text-align: center;
-            opacity: 0.7;
-            font-style: italic;
-            margin-top: 50px;
-            background: rgba(15, 23, 42, 0.6);
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-          }
+    if (Number.isFinite(left) && Number.isFinite(top)) {
+      left -= this.dragState.offsetX;
+      top -= this.dragState.offsetY;
+    } else if (this.lyricsElements.root) {
+      const rect = this.lyricsElements.root.getBoundingClientRect();
+      left = rect.left;
+      top = rect.top;
+    } else if (this.lyricsPosition) {
+      left = this.lyricsPosition.left;
+      top = this.lyricsPosition.top;
+    } else {
+      left = 24;
+      top = 24;
+    }
 
-          .loading {
-            text-align: center;
-            font-size: 18px;
-            opacity: 0.8;
-          }
+    this.setLyricsPosition({ left, top });
 
-          .footer-credit {
-            margin-top: 40px;
-            font-size: 12px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            opacity: 0.7;
-            text-align: center;
-          }
+    if (this.lyricsElements.dragHandle && typeof this.lyricsElements.dragHandle.releasePointerCapture === 'function') {
+      try {
+        this.lyricsElements.dragHandle.releasePointerCapture(this.dragState.pointerId);
+      } catch (error) {
+        // Ignore release errors
+      }
+    }
 
-          .footer-credit strong {
-            color: #ffd966;
-            font-weight: 700;
-            letter-spacing: 1.8px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand-badge">
-            <img src="${logoUrl}" alt="AnomFIN Tools" class="brand-logo" />
-            <div class="brand-text">
-              <div class="brand-title">AnomFIN Tools</div>
-              <div class="brand-subtitle">Audio only- tube · AnomTools suite</div>
-            </div>
-          </div>
-          <div class="title" id="song-title">🎵 JugiTube Lyrics</div>
-          <div class="artist" id="song-artist">Karaoke Mode Active</div>
-          <div class="decor-line"></div>
-        </div>
-        <div id="lyrics-container" class="lyrics-container">
-          <div class="loading">Loading lyrics...</div>
-        </div>
-        <div class="footer-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></div>
-      </body>
-      </html>
-    `);
+    this.detachLyricsDragListeners();
+    this.dragState = null;
+  }
 
-    this.lyricsWindow.document.close();
+  detachLyricsDragListeners() {
+    document.removeEventListener('pointermove', this.boundLyricsPointerMove);
+    document.removeEventListener('pointerup', this.boundLyricsPointerUp);
+    document.removeEventListener('pointercancel', this.boundLyricsPointerUp);
+
+    if (this.lyricsElements.dragHandle && this.dragState && typeof this.lyricsElements.dragHandle.releasePointerCapture === 'function') {
+      try {
+        this.lyricsElements.dragHandle.releasePointerCapture(this.dragState.pointerId);
+      } catch (error) {
+        // Ignore release errors when detaching listeners
+      }
+    }
+
+    if (this.lyricsElements.root) {
+      this.lyricsElements.root.classList.remove('anomfin-lyrics--dragging');
+    }
+  }
+
+  handleWindowResize() {
+    if (!this.lyricsElements.root) {
+      return;
+    }
+
+    if (this.lyricsPosition) {
+      this.setLyricsPosition(this.lyricsPosition, { skipPersist: true });
+    }
+  }
+
+  scrollActiveLyricIntoView(lineElement) {
+    if (!this.lyricsElements.lines || !lineElement) {
+      return;
+    }
+
+    const container = this.lyricsElements.lines;
+    const containerHeight = container.clientHeight;
+    const targetOffset = lineElement.offsetTop;
+    const targetHeight = lineElement.offsetHeight;
+    const scrollTarget = Math.max(targetOffset - containerHeight / 2 + targetHeight / 2, 0);
+
+    container.scrollTo({
+      top: scrollTarget,
+      behavior: 'smooth'
+    });
+  }
+
+  extractVideoMetadata() {
+    const titleElement = document.querySelector('h1.title yt-formatted-string, h1 yt-formatted-string');
+    let rawTitle = titleElement ? titleElement.textContent.trim() : '';
+
+    if (!rawTitle && document.title) {
+      rawTitle = document.title.replace(/ - YouTube$/i, '').trim();
+    }
+
+    const artistElement = document.querySelector('#channel-name a, #owner-name a, ytd-video-owner-renderer a');
+    let artist = artistElement ? artistElement.textContent.trim() : '';
+
+    let cleanedTitle = rawTitle;
+    const hyphenMatch = rawTitle.match(/^(.*?)[\-–—]{1}(.*)$/);
+    if (hyphenMatch) {
+      const possibleArtist = hyphenMatch[1].trim();
+      const possibleTitle = hyphenMatch[2].trim();
+      if (!artist && possibleArtist) {
+        artist = possibleArtist;
+      }
+      if (possibleTitle) {
+        cleanedTitle = possibleTitle;
+      }
+    }
+
+    cleanedTitle = cleanedTitle
+      .replace(/\(official.*?\)/gi, '')
+      .replace(/\(feat\.?[^)]*\)/gi, '')
+      .replace(/\(ft\.?[^)]*\)/gi, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/feat\.?\s+.+/gi, '')
+      .replace(/ft\.?\s+.+/gi, '')
+      .replace(/lyrics?/gi, '')
+      .replace(/official\s+music\s+video/gi, '')
+      .replace(/official\s+video/gi, '')
+      .replace(/visualizer/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    artist = artist
+      .replace(/\s+-\s+Topic$/i, '')
+      .replace(/\s+VEVO$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return {
+      title: cleanedTitle || rawTitle || 'Unknown Title',
+      artist: artist || 'Unknown Artist',
+      rawTitle: rawTitle || 'Unknown Title'
+    };
+  }
+
+  extractVideoId() {
+    try {
+      const url = new URL(window.location.href);
+      return url.searchParams.get('v');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  normalizeLyrics(rawLyrics) {
+    if (!Array.isArray(rawLyrics)) {
+      return [];
+    }
+
+    const normalized = [];
+
+    rawLyrics.forEach((entry, index) => {
+      if (entry === null || entry === undefined) {
+        return;
+      }
+
+      const textValue = typeof entry === 'string' ? entry : entry.text || entry.line || '';
+      const trimmedText = textValue.toString().trim();
+
+      if (!trimmedText) {
+        return;
+      }
+
+      let timeValue = 0;
+
+      if (typeof entry === 'number') {
+        timeValue = entry;
+      } else if (typeof entry.time === 'number') {
+        timeValue = entry.time;
+      } else if (typeof entry.time === 'string') {
+        const parsed = parseFloat(entry.time.replace(',', '.'));
+        timeValue = Number.isNaN(parsed) ? index * 4 : parsed;
+      } else {
+        timeValue = index * 4;
+      }
+
+      if (!Number.isFinite(timeValue) || timeValue < 0) {
+        timeValue = Math.max(index * 4, 0);
+      }
+
+      normalized.push({
+        time: timeValue,
+        text: trimmedText
+      });
+    });
+
+    normalized.sort((a, b) => a.time - b.time);
+    return normalized;
+  }
+
+  trimLyricsCache(limit = 12) {
+    if (!this.lyricsCache || typeof this.lyricsCache.keys !== 'function') {
+      return;
+    }
+
+    while (this.lyricsCache.size > limit) {
+      const oldestEntry = this.lyricsCache.keys().next();
+      if (oldestEntry && typeof oldestEntry.value !== 'undefined') {
+        this.lyricsCache.delete(oldestEntry.value);
+      } else {
+        break;
+      }
+    }
   }
   
   async loadLyrics() {
-    // Get video title and artist from page
-    const titleElement = document.querySelector('h1.title yt-formatted-string, h1 yt-formatted-string');
-    const title = titleElement ? titleElement.textContent.trim() : 'Unknown Title';
+    if (!this.isEnabled) {
+      return;
+    }
 
-    // Try to extract artist from title (basic parsing)
-    let artist = 'Unknown Artist';
-    const titleParts = title.split(' - ');
-    if (titleParts.length >= 2) {
-      artist = titleParts[0].trim();
+    this.ensureLyricsUi();
+
+    const metadata = this.extractVideoMetadata();
+    const videoId = this.extractVideoId();
+    if (videoId) {
+      this.activeVideoId = videoId;
     }
-    
-    // Update lyrics window header
-    if (this.lyricsWindow && !this.lyricsWindow.closed) {
-      const titleEl = this.lyricsWindow.document.getElementById('song-title');
-      const artistEl = this.lyricsWindow.document.getElementById('song-artist');
-      if (titleEl) titleEl.textContent = title;
-      if (artistEl) artistEl.textContent = artist;
+
+    this.updateLyricsHeader(metadata.title, metadata.artist);
+
+    const cacheKey = videoId || `${metadata.title}:::${metadata.artist}`;
+    if (cacheKey && this.lyricsCache.has(cacheKey)) {
+      const cached = this.lyricsCache.get(cacheKey);
+      const cachedLyrics = Array.isArray(cached?.lyrics) ? cached.lyrics : [];
+      this.currentLyrics = cachedLyrics.slice();
+      this.lyricLineElements = [];
+
+      if (this.currentLyrics.length > 0) {
+        this.displayLyrics();
+      } else {
+        this.showNoLyrics(cached?.error || null);
+      }
+
+      return;
     }
-    
-    // Request lyrics from background script
+
+    this.updateLyricsStatus('AnomFIN analysoi kappaletta…', 'loading');
+    this.renderLyricsPlaceholder('AnomFIN analysoi kappaletta…', 'loading');
+    this.currentLyrics = [];
+    this.lyricLineElements = [];
+
+    this.lyricsRequestToken += 1;
+    const requestToken = this.lyricsRequestToken;
+
     try {
       const response = await chrome.runtime.sendMessage({
         action: 'getLyrics',
-        title: title,
-        artist: artist
+        title: metadata.title,
+        artist: metadata.artist
       });
 
-      if (response && Array.isArray(response.lyrics) && response.lyrics.length > 0) {
-        this.currentLyrics = response.lyrics;
-        this.displayLyrics();
-      } else {
-        this.currentLyrics = [];
-        this.showNoLyrics(response && response.error ? response.error : null);
+      if (requestToken !== this.lyricsRequestToken) {
+        return;
       }
+
+      if (response && Array.isArray(response.lyrics) && response.lyrics.length > 0) {
+        const normalized = this.normalizeLyrics(response.lyrics);
+        if (normalized.length > 0) {
+          this.currentLyrics = normalized.slice();
+          if (cacheKey) {
+            this.lyricsCache.set(cacheKey, { lyrics: this.currentLyrics.slice(), error: null });
+            this.trimLyricsCache();
+          }
+          this.displayLyrics();
+          return;
+        }
+      }
+
+      this.currentLyrics = [];
+      if (cacheKey) {
+        this.lyricsCache.set(cacheKey, { lyrics: [], error: response && response.error ? response.error : null });
+        this.trimLyricsCache();
+      }
+      this.showNoLyrics(response && response.error ? response.error : null);
     } catch (error) {
       console.log('Could not load lyrics:', error);
+
+      if (requestToken !== this.lyricsRequestToken) {
+        return;
+      }
+
       this.currentLyrics = [];
-      this.showNoLyrics();
+      const fallbackMessage = 'AnomFIN karaoke backend unreachable just now — yritä uudelleen hetken kuluttua.';
+      if (cacheKey) {
+        this.lyricsCache.set(cacheKey, { lyrics: [], error: fallbackMessage });
+        this.trimLyricsCache();
+      }
+      this.showNoLyrics(fallbackMessage);
     }
   }
 
@@ -458,6 +792,8 @@ class JugiTube {
       return;
     }
 
+    this.ensureLyricsUi();
+
     if (immediate) {
       this.loadLyrics();
       return;
@@ -470,43 +806,58 @@ class JugiTube {
   }
 
   displayLyrics() {
-    if (!this.lyricsWindow || this.lyricsWindow.closed) return;
-
-    const container = this.lyricsWindow.document.getElementById('lyrics-container');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    
-    this.currentLyrics.forEach((lyric, index) => {
-      const lyricElement = this.lyricsWindow.document.createElement('div');
-      lyricElement.className = 'lyric-line';
-      lyricElement.textContent = lyric.text;
-      lyricElement.dataset.time = lyric.time;
-      lyricElement.dataset.index = index;
-      container.appendChild(lyricElement);
-    });
-  }
-  
-  showNoLyrics(message = null) {
-    if (!this.lyricsWindow || this.lyricsWindow.closed) return;
-
-    const container = this.lyricsWindow.document.getElementById('lyrics-container');
-    if (container) {
-      const displayMessage = message || 'No lyrics available for this video yet — AnomFIN scanners are still sweeping the net.';
-      container.innerHTML = `<div class="no-lyrics">${displayMessage}</div>`;
+    if (!this.lyricsElements.lines) {
+      return;
     }
+
+    if (!this.currentLyrics.length) {
+      this.renderLyricsPlaceholder('Lyriikoita ei löytynyt — AnomFIN jatkaa etsintää.', 'empty');
+      this.updateLyricsStatus('Lyriikoita ei löytynyt', 'empty');
+      return;
+    }
+
+    const container = this.lyricsElements.lines;
+    container.innerHTML = '';
+
+    const fragment = document.createDocumentFragment();
+
+    this.currentLyrics.forEach((lyric, index) => {
+      const lyricElement = document.createElement('div');
+      lyricElement.className = 'anomfin-lyrics__line';
+      lyricElement.textContent = lyric.text;
+      lyricElement.dataset.time = String(lyric.time);
+      lyricElement.dataset.index = String(index);
+      lyricElement.setAttribute('role', 'listitem');
+      fragment.appendChild(lyricElement);
+    });
+
+    container.appendChild(fragment);
+    this.lyricLineElements = Array.from(container.querySelectorAll('.anomfin-lyrics__line'));
+    this.updateLyricsStatus('Synkronoidut lyriikat by AnomFIN · AnomTools', 'ready');
+    container.scrollTop = 0;
+    this.syncLyrics();
+  }
+
+  showNoLyrics(message = null) {
+    const hasMessage = typeof message === 'string' && message.trim().length > 0;
+    const displayMessage = hasMessage
+      ? message.trim()
+      : 'No lyrics available for this video yet — AnomFIN scanners are still sweeping the net.';
+    const variant = hasMessage ? 'error' : 'empty';
+    this.renderLyricsPlaceholder(displayMessage, variant);
+    this.updateLyricsStatus(hasMessage ? 'Lyriikoiden haku epäonnistui' : 'Lyriikoita ei löytynyt', variant);
   }
   
   startLyricsSync() {
     if (this.lyricsInterval) {
       clearInterval(this.lyricsInterval);
     }
-    
+
     this.startTime = Date.now();
-    
+
     this.lyricsInterval = setInterval(() => {
       this.syncLyrics();
-    }, 500); // Update every 500ms
+    }, 400);
   }
   
   stopLyricsSync() {
@@ -517,48 +868,56 @@ class JugiTube {
   }
   
   syncLyrics() {
-    if (!this.lyricsWindow || this.lyricsWindow.closed || !this.videoElement) {
+    if (!this.videoElement || !this.lyricLineElements.length) {
       return;
     }
-    
+
     const currentTime = this.videoElement.currentTime;
-    
-    // Find current lyric
+
     let currentIndex = -1;
     for (let i = 0; i < this.currentLyrics.length; i++) {
-      if (currentTime >= this.currentLyrics[i].time) {
+      if (currentTime + 0.2 >= this.currentLyrics[i].time) {
         currentIndex = i;
       } else {
         break;
       }
     }
-    
-    // Update lyrics display
-    const lyricElements = this.lyricsWindow.document.querySelectorAll('.lyric-line');
-    lyricElements.forEach((element, index) => {
-      element.classList.remove('current', 'next');
-      
-      if (index === currentIndex) {
-        element.classList.add('current');
-      } else if (index === currentIndex + 1) {
-        element.classList.add('next');
-      }
+
+    this.lyricLineElements.forEach((element, index) => {
+      const isCurrent = index === currentIndex;
+      const isNext = index === currentIndex + 1 || (currentIndex === -1 && index === 0);
+      element.classList.toggle('anomfin-lyrics__line--current', isCurrent);
+      element.classList.toggle('anomfin-lyrics__line--next', isNext && !isCurrent);
     });
-    
-    // Auto-scroll to current lyric
-    if (currentIndex >= 0 && lyricElements[currentIndex]) {
-      lyricElements[currentIndex].scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
+
+    if (currentIndex >= 0 && this.lyricLineElements[currentIndex]) {
+      this.scrollActiveLyricIntoView(this.lyricLineElements[currentIndex]);
     }
   }
-  
+
   closeLyricsWindow() {
-    if (this.lyricsWindow && !this.lyricsWindow.closed) {
-      this.lyricsWindow.close();
+    this.detachLyricsDragListeners();
+    window.removeEventListener('resize', this.boundHandleResize);
+
+    if (this.lyricsElements.root && this.lyricsElements.root.parentElement) {
+      this.lyricsElements.root.parentElement.removeChild(this.lyricsElements.root);
     }
-    this.lyricsWindow = null;
+
+    this.lyricsElements = {
+      root: null,
+      panel: null,
+      title: null,
+      artist: null,
+      status: null,
+      statusText: null,
+      lines: null,
+      toggle: null,
+      dragHandle: null,
+      brandLogo: null
+    };
+
+    this.lyricLineElements = [];
+    this.dragState = null;
   }
 
   attachNavigationListeners() {

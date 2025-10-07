@@ -66,6 +66,7 @@ async function handleLyricsRequest({ title, artist }) {
 async function fetchLyricsFromProviders(title, artist) {
   const providers = [
     () => fetchFromLrclib(title, artist),
+    () => fetchFromSomeRandomApi(title, artist),
     () => fetchFromLyricsOvh(title, artist)
   ];
 
@@ -93,6 +94,10 @@ async function fetchFromLrclib(title, artist) {
   if (artist) params.append('artist_name', artist);
 
   const response = await fetch(`https://lrclib.net/api/get?${params.toString()}`);
+
+  if (response.status === 404) {
+    return null;
+  }
 
   if (!response.ok) {
     throw new Error(`LRCLib request failed with status ${response.status}`);
@@ -127,12 +132,46 @@ async function fetchFromLyricsOvh(title, artist) {
 
   const response = await fetch(endpoint);
 
+  if (response.status === 404) {
+    return null;
+  }
+
   if (!response.ok) {
     throw new Error(`Lyrics.ovh request failed with status ${response.status}`);
   }
 
   const data = await response.json();
   return data.lyrics || null;
+}
+
+async function fetchFromSomeRandomApi(title, artist) {
+  if (!title) {
+    return null;
+  }
+
+  const queryParts = [];
+  if (artist) {
+    queryParts.push(artist);
+  }
+  queryParts.push(title);
+
+  const endpoint = `https://some-random-api.ml/lyrics?title=${encodeURIComponent(queryParts.join(' - '))}`;
+  const response = await fetch(endpoint);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`SomeRandomAPI lyrics request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data && typeof data.lyrics === 'string' && data.lyrics.trim().length > 0) {
+    return data.lyrics;
+  }
+
+  return null;
 }
 
 function parseSyncedLyrics(lrcText) {
@@ -172,7 +211,14 @@ function sanitizeTitle(title) {
   if (!title) return '';
   return title
     .replace(/\(official.*?\)/gi, '')
+    .replace(/\(feat\.?[^)]*\)/gi, '')
+    .replace(/\(ft\.?[^)]*\)/gi, '')
     .replace(/\[.*?\]/g, '')
+    .replace(/feat\.?\s+[^-]+/gi, '')
+    .replace(/ft\.?\s+[^-]+/gi, '')
+    .replace(/official\s+music\s+video/gi, '')
+    .replace(/official\s+video/gi, '')
+    .replace(/visualizer/gi, '')
     .replace(/lyrics?/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -184,6 +230,8 @@ function sanitizeArtist(artist) {
   }
 
   return artist
+    .replace(/\s+-\s+Topic$/i, '')
+    .replace(/\s+VEVO$/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
