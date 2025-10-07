@@ -12,7 +12,8 @@
     "*://*.youtube.com/*",
     "*://*.googleapis.com/*",
     "https://lrclib.net/*",
-    "https://api.lyrics.ovh/*"
+    "https://api.lyrics.ovh/*",
+    "https://some-random-api.ml/*"
   ],
   "content_scripts": [
     {
