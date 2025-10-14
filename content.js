@@ -193,6 +193,15 @@ class JugiTube {
       return;
     }
 
+    const computedPosition = window.getComputedStyle(videoContainer).position;
+    if (!videoContainer.hasAttribute('data-anomfin-audio-only')) {
+      videoContainer.setAttribute('data-anomfin-audio-only', 'true');
+      if (computedPosition === 'static') {
+        videoContainer.dataset.anomfinOriginalPosition = 'static';
+        videoContainer.style.position = 'relative';
+      }
+    }
+
     if (this.placeholderElement && this.placeholderElement.parentElement !== videoContainer) {
       this.placeholderElement.remove();
       this.placeholderElement = null;
@@ -269,6 +278,15 @@ class JugiTube {
   unblockVideo(targetVideo = this.videoElement) {
     if (targetVideo) {
       targetVideo.style.display = this.originalVideoDisplay;
+
+      const container = targetVideo.parentElement;
+      if (container && container.hasAttribute('data-anomfin-audio-only')) {
+        if (container.dataset.anomfinOriginalPosition === 'static') {
+          container.style.position = '';
+          delete container.dataset.anomfinOriginalPosition;
+        }
+        container.removeAttribute('data-anomfin-audio-only');
+      }
     }
 
     if (this.placeholderElement) {

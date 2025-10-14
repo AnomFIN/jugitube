@@ -66,6 +66,7 @@ async function handleLyricsRequest({ title, artist }) {
 async function fetchLyricsFromProviders(title, artist) {
   const providers = [
     () => fetchFromLrclib(title, artist),
+    () => fetchFromLrclibSearch(title, artist),
     () => fetchFromSomeRandomApi(title, artist),
     () => fetchFromLyricsOvh(title, artist)
   ];
@@ -104,19 +105,79 @@ async function fetchFromLrclib(title, artist) {
   }
 
   const data = await response.json();
-
-  if (data.syncedLyrics) {
-    const parsed = parseSyncedLyrics(data.syncedLyrics);
-    if (parsed.length) {
-      return parsed;
-    }
+  const resolved = extractLyricsFromLrclibItem(data);
+  if (resolved) {
+    return resolved;
   }
 
-  if (data.plainLyrics) {
-    return data.plainLyrics;
+  if (data && typeof data.id !== 'undefined') {
+    return fetchFromLrclibById(data.id);
   }
 
   return null;
+}
+
+async function fetchFromLrclibSearch(title, artist) {
+  if (!title && !artist) {
+    return null;
+  }
+
+  const params = new URLSearchParams();
+  if (title) params.append('track_name', title);
+  if (artist) params.append('artist_name', artist);
+  params.append('limit', '5');
+
+  const response = await fetch(`https://lrclib.net/api/search?${params.toString()}`);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`LRCLib search failed with status ${response.status}`);
+  }
+
+  const results = await response.json();
+  if (!Array.isArray(results) || results.length === 0) {
+    return null;
+  }
+
+  for (const item of results) {
+    const resolved = extractLyricsFromLrclibItem(item);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  for (const item of results) {
+    if (item && typeof item.id !== 'undefined') {
+      const resolved = await fetchFromLrclibById(item.id);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+
+  return null;
+}
+
+async function fetchFromLrclibById(id) {
+  if (!id) {
+    return null;
+  }
+
+  const response = await fetch(`https://lrclib.net/api/get?id=${encodeURIComponent(id)}`);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`LRCLib by id request failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+  return extractLyricsFromLrclibItem(payload);
 }
 
 async function fetchFromLyricsOvh(title, artist) {
@@ -169,6 +230,25 @@ async function fetchFromSomeRandomApi(title, artist) {
   const data = await response.json();
   if (data && typeof data.lyrics === 'string' && data.lyrics.trim().length > 0) {
     return data.lyrics;
+  }
+
+  return null;
+}
+
+function extractLyricsFromLrclibItem(item) {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  if (typeof item.syncedLyrics === 'string' && item.syncedLyrics.trim().length > 0) {
+    const parsed = parseSyncedLyrics(item.syncedLyrics);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+  }
+
+  if (typeof item.plainLyrics === 'string' && item.plainLyrics.trim().length > 0) {
+    return item.plainLyrics;
   }
 
   return null;
