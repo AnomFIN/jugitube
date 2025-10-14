@@ -11,6 +11,7 @@ class JugiTube {
       statusText: null,
       lines: null,
       toggle: null,
+      retry: null,
       dragHandle: null,
       brandLogo: null
     };
@@ -33,6 +34,7 @@ class JugiTube {
     this.boundLyricsPointerMove = this.onLyricsPointerMove.bind(this);
     this.boundLyricsPointerUp = this.onLyricsPointerUp.bind(this);
     this.boundHandleResize = this.handleWindowResize.bind(this);
+    this.manualRetryInProgress = false;
     this.customAssets = {
       background: null,
       logo: null
@@ -326,8 +328,8 @@ class JugiTube {
 
     root.innerHTML = `
       <div class="anomfin-lyrics__panel">
-        <div class="anomfin-lyrics__branding" data-role="drag-handle">
-          <div class="anomfin-lyrics__brand-block">
+        <div class="anomfin-lyrics__branding">
+          <div class="anomfin-lyrics__brand-block" data-role="drag-handle">
             <img src="${logoUrl}" alt="AnomFIN Tools logo" class="anomfin-lyrics__logo" />
             <div class="anomfin-lyrics__brand-copy">
               <span class="anomfin-lyrics__brand-title">AnomFIN Tools</span>
@@ -362,6 +364,7 @@ class JugiTube {
       statusText: root.querySelector('[data-role="status-text"]'),
       lines: root.querySelector('[data-role="lines"]'),
       toggle: root.querySelector('[data-role="toggle"]'),
+      retry: root.querySelector('[data-role="retry"]'),
       dragHandle: root.querySelector('[data-role="drag-handle"]'),
       brandLogo: root.querySelector('.anomfin-lyrics__logo')
     };
@@ -384,6 +387,11 @@ class JugiTube {
 
     if (this.lyricsElements.dragHandle) {
       this.lyricsElements.dragHandle.addEventListener('pointerdown', (event) => this.onLyricsPointerDown(event));
+    }
+
+    if (this.lyricsElements.retry) {
+      this.lyricsElements.retry.addEventListener('click', () => this.handleManualLyricsRetry());
+      this.lyricsElements.retry.dataset.originalLabel = this.lyricsElements.retry.textContent.trim();
     }
 
     window.addEventListener('resize', this.boundHandleResize);
@@ -714,7 +722,9 @@ class JugiTube {
     }
   }
   
-  async loadLyrics() {
+  async loadLyrics(options = {}) {
+    const { manualRetry = false } = options;
+
     if (!this.isEnabled) {
       return;
     }
@@ -730,7 +740,11 @@ class JugiTube {
     this.updateLyricsHeader(metadata.title, metadata.artist);
 
     const cacheKey = videoId || `${metadata.title}:::${metadata.artist}`;
-    if (cacheKey && this.lyricsCache.has(cacheKey)) {
+    if (manualRetry && cacheKey) {
+      this.lyricsCache.delete(cacheKey);
+    }
+
+    if (!manualRetry && cacheKey && this.lyricsCache.has(cacheKey)) {
       const cached = this.lyricsCache.get(cacheKey);
       const cachedLyrics = Array.isArray(cached?.lyrics) ? cached.lyrics : [];
       this.currentLyrics = cachedLyrics.slice();
@@ -745,8 +759,9 @@ class JugiTube {
       return;
     }
 
-    this.updateLyricsStatus('AnomFIN analysoi kappaletta…', 'loading');
-    this.renderLyricsPlaceholder('AnomFIN analysoi kappaletta…', 'loading');
+    const loadingMessage = manualRetry ? 'Haetaan uusia lyriikoita…' : 'AnomFIN analysoi kappaletta…';
+    this.updateLyricsStatus(loadingMessage, 'loading');
+    this.renderLyricsPlaceholder(manualRetry ? 'AnomFIN hakee tuoreita lyriikoita…' : 'AnomFIN analysoi kappaletta…', 'loading');
     this.currentLyrics = [];
     this.lyricLineElements = [];
 
@@ -757,7 +772,8 @@ class JugiTube {
       const response = await chrome.runtime.sendMessage({
         action: 'getLyrics',
         title: metadata.title,
-        artist: metadata.artist
+        artist: metadata.artist,
+        manualRetry
       });
 
       if (requestToken !== this.lyricsRequestToken) {
@@ -797,6 +813,42 @@ class JugiTube {
         this.trimLyricsCache();
       }
       this.showNoLyrics(fallbackMessage);
+    }
+  }
+
+  async handleManualLyricsRetry() {
+    if (!this.lyricsElements.retry || this.manualRetryInProgress) {
+      return;
+    }
+
+    const button = this.lyricsElements.retry;
+    this.manualRetryInProgress = true;
+
+    const originalLabel = button.dataset.originalLabel || button.textContent.trim();
+    button.disabled = true;
+    button.classList.add('anomfin-lyrics__btn--loading');
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Generating…';
+
+    try {
+      await this.loadLyrics({ manualRetry: true });
+    } catch (error) {
+      console.error('Manual lyrics retry failed:', error);
+      this.updateLyricsStatus('Lyriikoiden haku epäonnistui — yritä hetken päästä uudelleen.', 'error');
+      this.renderLyricsPlaceholder('Lyriikoita ei löytynyt – kokeile hakea hetken kuluttua uudelleen.', 'error');
+    } finally {
+      button.disabled = false;
+      button.classList.remove('anomfin-lyrics__btn--loading');
+      button.removeAttribute('aria-busy');
+      button.textContent = originalLabel;
+      this.manualRetryInProgress = false;
+      requestAnimationFrame(() => {
+        try {
+          button.focus({ preventScroll: true });
+        } catch (focusError) {
+          button.focus();
+        }
+      });
     }
   }
 
@@ -930,12 +982,14 @@ class JugiTube {
       statusText: null,
       lines: null,
       toggle: null,
+      retry: null,
       dragHandle: null,
       brandLogo: null
     };
 
     this.lyricLineElements = [];
     this.dragState = null;
+    this.manualRetryInProgress = false;
   }
 
   attachNavigationListeners() {
