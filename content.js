@@ -336,10 +336,7 @@ class JugiTube {
               <span class="anomfin-lyrics__brand-subtitle">AnomTools Karaoke Console</span>
             </div>
           </div>
-          <div class="anomfin-lyrics__controls">
-            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry">Try to generate lyrics</button>
-            <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota karaoke</button>
-          </div>
+          <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">PIILOITA</button>
         </div>
         <div class="anomfin-lyrics__meta">
           <div class="anomfin-lyrics__song" data-role="title">🎵 JugiTube Lyrics</div>
@@ -380,7 +377,7 @@ class JugiTube {
     if (this.lyricsElements.toggle) {
       this.lyricsElements.toggle.addEventListener('click', () => {
         const collapsed = root.classList.toggle('anomfin-lyrics--collapsed');
-        this.lyricsElements.toggle.textContent = collapsed ? 'Avaa karaoke' : 'Piilota karaoke';
+        this.lyricsElements.toggle.textContent = collapsed ? 'AVAA' : 'PIILOITA';
         this.lyricsElements.toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         if (!collapsed) {
           this.handleWindowResize();
