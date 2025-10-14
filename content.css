@@ -20,6 +20,10 @@
   transform: translateZ(0);
 }
 
+[data-anomfin-audio-only='true'] {
+  position: relative;
+}
+
 #jugitube-placeholder::before {
   content: '';
   position: absolute;
