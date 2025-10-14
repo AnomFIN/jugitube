@@ -162,7 +162,7 @@ async function fetchFromLrclibSearch(title, artist) {
 }
 
 async function fetchFromLrclibById(id) {
-  if (typeof id === 'undefined' || id === null) {
+  if (!id) {
     return null;
   }
 
