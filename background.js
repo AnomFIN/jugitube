@@ -41,11 +41,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function handleLyricsRequest({ title, artist }) {
+async function handleLyricsRequest({ title, artist, manualRetry = false }) {
   const cleanTitle = sanitizeTitle(title);
   const cleanArtist = sanitizeArtist(artist);
 
-  const lyricsText = await fetchLyricsFromProviders(cleanTitle, cleanArtist);
+  const lyricsText = await fetchLyricsFromProviders(cleanTitle, cleanArtist, {
+    manualRetry: Boolean(manualRetry)
+  });
 
   if (!lyricsText) {
     return {
@@ -63,13 +65,27 @@ async function handleLyricsRequest({ title, artist }) {
   };
 }
 
-async function fetchLyricsFromProviders(title, artist) {
-  const providers = [
-    () => fetchFromLrclib(title, artist),
-    () => fetchFromLrclibSearch(title, artist),
-    () => fetchFromSomeRandomApi(title, artist),
-    () => fetchFromLyricsOvh(title, artist)
+async function fetchLyricsFromProviders(title, artist, options = {}) {
+  const { manualRetry = false } = options;
+
+  const searchCombos = [
+    { title, artist }
   ];
+
+  if (manualRetry && title && searchCombos.length > 0 && searchCombos[0].artist) {
+    searchCombos.push({ title, artist: '' });
+  }
+
+  const providers = [];
+
+  for (const combo of searchCombos) {
+    providers.push(() => fetchFromLrclib(combo.title, combo.artist));
+    providers.push(() => fetchFromLrclibSearch(combo.title, combo.artist));
+    providers.push(() => fetchFromSomeRandomApi(combo.title, combo.artist));
+    if (combo.artist) {
+      providers.push(() => fetchFromLyricsOvh(combo.title, combo.artist));
+    }
+  }
 
   for (const provider of providers) {
     try {
@@ -111,7 +127,7 @@ async function fetchFromLrclib(title, artist) {
   }
 
   if (data && typeof data.id !== 'undefined') {
-    return fetchFromLrclibById(data.id);
+    return await fetchFromLrclibById(data.id);
   }
 
   return null;

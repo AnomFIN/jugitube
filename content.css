@@ -297,28 +297,30 @@
   z-index: 2;
 }
 
+
 .anomfin-lyrics__branding {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px 12px;
-  cursor: grab;
   user-select: none;
-}
-
-#anomfin-lyrics-console.anomfin-lyrics--dragging {
-  opacity: 0.95;
-}
-
-#anomfin-lyrics-console.anomfin-lyrics--dragging .anomfin-lyrics__branding {
-  cursor: grabbing;
+  flex-wrap: wrap;
 }
 
 .anomfin-lyrics__brand-block {
   display: flex;
   align-items: center;
   gap: 16px;
+  cursor: grab;
+}
+
+#anomfin-lyrics-console.anomfin-lyrics--dragging {
+  opacity: 0.95;
+}
+
+#anomfin-lyrics-console.anomfin-lyrics--dragging .anomfin-lyrics__brand-block {
+  cursor: grabbing;
 }
 
 .anomfin-lyrics__logo {
@@ -364,6 +366,48 @@
   transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
   cursor: pointer;
   backdrop-filter: blur(6px);
+}
+
+.anomfin-lyrics__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.anomfin-lyrics__btn--retry {
+  background: rgba(236, 72, 153, 0.22);
+  border-color: rgba(244, 114, 182, 0.45);
+  color: #fff5ff;
+}
+
+.anomfin-lyrics__btn--retry:hover {
+  background: rgba(244, 114, 182, 0.35);
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.anomfin-lyrics__btn[disabled] {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.anomfin-lyrics__btn--loading {
+  position: relative;
+}
+
+.anomfin-lyrics__btn--loading::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: rgba(255, 255, 255, 0.05);
+  animation: anomfin-spin 0.8s linear infinite;
 }
 
 .anomfin-lyrics__btn:hover {
@@ -556,6 +600,16 @@
   letter-spacing: 1.6px;
   text-align: center;
   opacity: 0.8;
+}
+
+@keyframes anomfin-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .anomfin-lyrics__footer strong {
