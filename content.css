@@ -28,6 +28,7 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   background-image: linear-gradient(135deg, rgba(18, 31, 70, 0.65), rgba(42, 98, 175, 0.85)), var(--jugitube-background, var(--jugitube-logo));
   background-size: cover, cover;
   background-position: center, center;
@@ -40,6 +41,7 @@
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
     radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.25), transparent 65%),
     linear-gradient(135deg, rgba(10, 17, 43, 0.55), rgba(18, 35, 74, 0.65));
@@ -54,7 +56,7 @@
   justify-content: center;
   padding: 60px 30px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .jugitube-audio-only {
@@ -71,6 +73,8 @@
   align-items: center;
   gap: 14px;
   max-width: 680px;
+  position: relative;
+  z-index: 1;
 }
 
 .jugitube-brand-badge {
@@ -160,6 +164,7 @@
   opacity: 0.18;
   filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.45));
   animation: jugitube-float 12s ease-in-out infinite;
+  z-index: 0;
 }
 
 .jugitube-floating-logo--one {
