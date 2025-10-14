@@ -72,7 +72,7 @@ async function fetchLyricsFromProviders(title, artist, options = {}) {
     { title, artist }
   ];
 
-  if (manualRetry && title && searchCombos.length > 0 && searchCombos[0].artist) {
+  if (manualRetry && title && searchCombos[0].artist) {
     searchCombos.push({ title, artist: '' });
   }
 
