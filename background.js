@@ -41,12 +41,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function handleLyricsRequest({ title, artist, manualRetry = false }) {
+async function handleLyricsRequest({ title, artist, manualRetry = false, retryLevel = 0 }) {
   const cleanTitle = sanitizeTitle(title);
   const cleanArtist = sanitizeArtist(artist);
 
   const lyricsText = await fetchLyricsFromProviders(cleanTitle, cleanArtist, {
-    manualRetry: Boolean(manualRetry)
+    manualRetry: Boolean(manualRetry),
+    retryLevel: Number.isFinite(retryLevel) ? retryLevel : 0
   });
 
   if (!lyricsText) {
@@ -66,15 +67,12 @@ async function handleLyricsRequest({ title, artist, manualRetry = false }) {
 }
 
 async function fetchLyricsFromProviders(title, artist, options = {}) {
-  const { manualRetry = false } = options;
+  const { manualRetry = false, retryLevel = 0 } = options;
 
-  const searchCombos = [
-    { title, artist }
-  ];
-
-  if (manualRetry && title && searchCombos[0].artist) {
-    searchCombos.push({ title, artist: '' });
-  }
+  const searchCombos = buildSearchCombos(title, artist, {
+    manualRetry: Boolean(manualRetry),
+    retryLevel: Number.isFinite(retryLevel) ? retryLevel : 0
+  });
 
   const providers = [];
 
@@ -301,6 +299,98 @@ function parseLyricsText(lyricsText) {
       time: index * 4,
       text: line
     }));
+}
+
+function loosenTitle(value) {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .replace(/\([^)]*remix[^)]*\)/gi, '')
+    .replace(/\([^)]*edit[^)]*\)/gi, '')
+    .replace(/\([^)]*version[^)]*\)/gi, '')
+    .replace(/\([^)]*live[^)]*\)/gi, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/\b(?:remix|edit|version|karaoke)\b/gi, '')
+    .replace(/[^a-z0-9äöå\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function loosenArtist(value) {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .replace(/\(.*?\)/g, '')
+    .replace(/\b(?:feat\.?|ft\.?|vs\.?|x)\b.*$/gi, '')
+    .replace(/[^a-z0-9äöå&\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildSearchCombos(title, artist, options = {}) {
+  const { manualRetry = false, retryLevel = 0 } = options;
+  const combos = [];
+  const seen = new Set();
+
+  const pushCombo = (comboTitle = '', comboArtist = '') => {
+    const normalizedTitle = (comboTitle || '').trim();
+    const normalizedArtist = (comboArtist || '').trim();
+    const key = `${normalizedTitle.toLowerCase()}:::${normalizedArtist.toLowerCase()}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    combos.push({ title: normalizedTitle, artist: normalizedArtist });
+  };
+
+  const baseTitle = title || '';
+  const baseArtist = artist || '';
+  const relaxedTitle = loosenTitle(baseTitle);
+  const relaxedArtist = loosenArtist(baseArtist);
+
+  pushCombo(baseTitle, baseArtist);
+
+  if (relaxedTitle && relaxedTitle !== baseTitle) {
+    pushCombo(relaxedTitle, baseArtist);
+  }
+
+  if (relaxedTitle && relaxedArtist) {
+    pushCombo(relaxedTitle, relaxedArtist);
+  }
+
+  if (manualRetry || retryLevel > 0) {
+    pushCombo(relaxedTitle || baseTitle, '');
+  }
+
+  if (retryLevel > 0) {
+    const hyphenSplit = baseTitle.split(/\s+-\s+/);
+    if (hyphenSplit.length === 2) {
+      pushCombo(hyphenSplit[1], baseArtist || hyphenSplit[0]);
+    }
+  }
+
+  if (retryLevel > 1) {
+    const artistParts = relaxedArtist
+      ? relaxedArtist.split(/[,&]/).map((part) => part.trim()).filter(Boolean)
+      : [];
+    artistParts.forEach((part) => pushCombo(relaxedTitle || baseTitle, part));
+
+    const titleWords = (relaxedTitle || baseTitle).split(/\s+/).filter(Boolean);
+    if (titleWords.length > 4) {
+      const shortened = titleWords.slice(0, Math.ceil(titleWords.length * 0.7)).join(' ');
+      pushCombo(shortened, relaxedArtist || baseArtist);
+    }
+  }
+
+  if (!combos.length) {
+    pushCombo(baseTitle, '');
+  }
+
+  return combos;
 }
 
 function sanitizeTitle(title) {

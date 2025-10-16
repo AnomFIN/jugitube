@@ -35,6 +35,13 @@ class JugiTube {
     this.boundLyricsPointerUp = this.onLyricsPointerUp.bind(this);
     this.boundHandleResize = this.handleWindowResize.bind(this);
     this.manualRetryInProgress = false;
+    this.manualRetryCount = 0;
+    this.placeholderResizeObserver = null;
+    this.placeholderResizeTargets = new Set();
+    this.captionMirrorElement = null;
+    this.captionObserver = null;
+    this.captionObserverInterval = null;
+    this.captionSourceElement = null;
     this.customAssets = {
       background: null,
       logo: null
@@ -116,6 +123,8 @@ class JugiTube {
     this.currentLyrics = [];
     this.lyricLineElements = [];
     this.activeVideoId = null;
+    this.manualRetryCount = 0;
+    this.stopCaptionMirroring();
     this.closeLyricsWindow();
     this.stopLyricsSync();
   }
@@ -214,23 +223,30 @@ class JugiTube {
     if (!this.placeholderElement) {
       const placeholder = document.createElement('div');
       placeholder.id = 'jugitube-placeholder';
+      const floatingLogos = Array.from({ length: 6 }, (_, index) =>
+        `<span class="jugitube-backdrop__logo jugitube-backdrop__logo--${index + 1}"></span>`
+      ).join('');
+
       placeholder.innerHTML = `
         <div class="jugitube-overlay">
-          <div class="jugitube-floating-logo jugitube-floating-logo--one"></div>
-          <div class="jugitube-floating-logo jugitube-floating-logo--two"></div>
-          <div class="jugitube-audio-only">
-              <div class="jugitube-brand-badge">
-                <img src="${logoUrl}" alt="AnomFIN Tools logo" class="jugitube-logo-img" />
-                <div class="jugitube-brand-text">
-                  <span class="jugitube-brand-primary">AnomFIN Tools</span>
-                  <span class="jugitube-brand-secondary">Audio only- tube</span>
-                </div>
-            </div>
-            <div class="jugitube-title">Audio Only Mode</div>
-            <div class="jugitube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</div>
-            <div class="jugitube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</div>
-            <div class="jugitube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></div>
+          <div class="jugitube-backdrop" aria-hidden="true">
+            <div class="jugitube-backdrop__grid">${floatingLogos}</div>
+            <div class="jugitube-backdrop__veil"></div>
+            <div class="jugitube-backdrop__glow"></div>
           </div>
+          <article class="jugitube-audio-only">
+            <header class="jugitube-brand-badge">
+              <img src="${logoUrl}" alt="AnomFIN Tools logo" class="jugitube-logo-img" />
+              <div class="jugitube-brand-text">
+                <span class="jugitube-brand-primary">AnomFIN Tools</span>
+                <span class="jugitube-brand-secondary">Audio only- tube</span>
+              </div>
+            </header>
+            <h2 class="jugitube-title">Audio Only Mode</h2>
+            <p class="jugitube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</p>
+            <p class="jugitube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</p>
+            <p class="jugitube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></p>
+          </article>
         </div>
       `;
       videoContainer.appendChild(placeholder);
@@ -238,6 +254,7 @@ class JugiTube {
     }
 
     this.updatePlaceholderAssets();
+    this.ensurePlaceholderSizing(video, videoContainer);
   }
 
   getAssetUrls() {
@@ -258,6 +275,114 @@ class JugiTube {
     const logoImg = this.placeholderElement.querySelector('.jugitube-logo-img');
     if (logoImg) {
       logoImg.src = logoUrl;
+    }
+  }
+
+  ensurePlaceholderSizing(video, container) {
+    if (!this.placeholderElement || !container) {
+      return;
+    }
+
+    if (!container.dataset.anomfinOriginalMinHeight) {
+      container.dataset.anomfinOriginalMinHeight = container.style.minHeight || '';
+    }
+
+    if (!container.dataset.anomfinOriginalHeight) {
+      container.dataset.anomfinOriginalHeight = container.style.height || '';
+    }
+
+    if (!container.dataset.anomfinOriginalMinWidth) {
+      container.dataset.anomfinOriginalMinWidth = container.style.minWidth || '';
+    }
+
+    if (!this.placeholderResizeObserver) {
+      this.placeholderResizeObserver = new ResizeObserver(() => {
+        this.syncPlaceholderDimensions();
+      });
+    }
+
+    const targets = [container, video].filter((element) => element && element instanceof Element);
+    targets.forEach((element) => {
+      if (!this.placeholderResizeTargets.has(element)) {
+        this.placeholderResizeTargets.add(element);
+        try {
+          this.placeholderResizeObserver.observe(element);
+        } catch (error) {
+          console.warn('Could not observe placeholder resize target:', error);
+        }
+      }
+    });
+
+    this.syncPlaceholderDimensions();
+  }
+
+  syncPlaceholderDimensions() {
+    if (!this.placeholderElement) {
+      return;
+    }
+
+    const container = this.placeholderElement.parentElement;
+    if (!container) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const videoRect = this.videoElement ? this.videoElement.getBoundingClientRect() : null;
+
+    const width = containerRect.width || (videoRect ? videoRect.width : 0) || (this.videoElement ? this.videoElement.videoWidth : 0);
+    const height = containerRect.height || (videoRect ? videoRect.height : 0) || (this.videoElement ? this.videoElement.videoHeight : 0);
+
+    if (width) {
+      container.style.minWidth = `${width}px`;
+      this.placeholderElement.style.width = '100%';
+    }
+
+    if (height) {
+      container.style.minHeight = `${height}px`;
+      this.placeholderElement.style.minHeight = `${height}px`;
+      this.placeholderElement.style.height = `${height}px`;
+    }
+
+    if (this.videoElement && this.videoElement.videoWidth && this.videoElement.videoHeight) {
+      this.placeholderElement.style.aspectRatio = `${this.videoElement.videoWidth} / ${this.videoElement.videoHeight}`;
+    } else if (width && height) {
+      this.placeholderElement.style.aspectRatio = `${width} / ${height}`;
+    }
+  }
+
+  releasePlaceholderSizing(container) {
+    if (!container) {
+      return;
+    }
+
+    if (container.dataset.anomfinOriginalMinHeight !== undefined) {
+      container.style.minHeight = container.dataset.anomfinOriginalMinHeight;
+      delete container.dataset.anomfinOriginalMinHeight;
+    }
+
+    if (container.dataset.anomfinOriginalHeight !== undefined) {
+      container.style.height = container.dataset.anomfinOriginalHeight;
+      delete container.dataset.anomfinOriginalHeight;
+    }
+
+    if (container.dataset.anomfinOriginalMinWidth !== undefined) {
+      container.style.minWidth = container.dataset.anomfinOriginalMinWidth;
+      delete container.dataset.anomfinOriginalMinWidth;
+    }
+  }
+
+  disconnectPlaceholderObserver() {
+    if (this.placeholderResizeObserver) {
+      this.placeholderResizeTargets.forEach((target) => {
+        try {
+          this.placeholderResizeObserver.unobserve(target);
+        } catch (error) {
+          // Ignore unobserve failures
+        }
+      });
+      this.placeholderResizeTargets.clear();
+      this.placeholderResizeObserver.disconnect();
+      this.placeholderResizeObserver = null;
     }
   }
 
@@ -287,6 +412,7 @@ class JugiTube {
           container.style.position = '';
           delete container.dataset.anomfinOriginalPosition;
         }
+        this.releasePlaceholderSizing(container);
         container.removeAttribute('data-anomfin-audio-only');
       }
     }
@@ -295,6 +421,8 @@ class JugiTube {
       this.placeholderElement.remove();
       this.placeholderElement = null;
     }
+
+    this.disconnectPlaceholderObserver();
   }
 
   disconnectVideoMonitoring() {
@@ -336,7 +464,10 @@ class JugiTube {
               <span class="anomfin-lyrics__brand-subtitle">AnomTools Karaoke Console</span>
             </div>
           </div>
-          <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">PIILOITA</button>
+          <div class="anomfin-lyrics__controls">
+            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden aria-hidden="true">Hae uudelleen</button>
+            <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota</button>
+          </div>
         </div>
         <div class="anomfin-lyrics__meta">
           <div class="anomfin-lyrics__song" data-role="title">🎵 JugiTube Lyrics</div>
@@ -377,7 +508,7 @@ class JugiTube {
     if (this.lyricsElements.toggle) {
       this.lyricsElements.toggle.addEventListener('click', () => {
         const collapsed = root.classList.toggle('anomfin-lyrics--collapsed');
-        this.lyricsElements.toggle.textContent = collapsed ? 'AVAA' : 'PIILOITA';
+        this.lyricsElements.toggle.textContent = collapsed ? 'Avaa' : 'Piilota';
         this.lyricsElements.toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         if (!collapsed) {
           this.handleWindowResize();
@@ -401,6 +532,7 @@ class JugiTube {
     }
 
     this.applyBrandingToLyricsWindow();
+    this.toggleRetryAvailability(false);
   }
 
   renderLyricsPlaceholder(message, mode = 'loading') {
@@ -424,6 +556,7 @@ class JugiTube {
     container.appendChild(placeholder);
 
     this.lyricLineElements = [];
+    return placeholder;
   }
 
   updateLyricsStatus(message, variant = 'info') {
@@ -434,11 +567,24 @@ class JugiTube {
     const allowed = new Set(['loading', 'ready', 'error', 'empty', 'info']);
     const appliedVariant = allowed.has(variant) ? variant : 'info';
     this.lyricsElements.status.setAttribute('data-variant', appliedVariant);
+    this.toggleRetryAvailability(appliedVariant === 'error');
 
     const textEl = this.lyricsElements.statusText || this.lyricsElements.status.querySelector('[data-role="status-text"]');
     if (textEl) {
       textEl.textContent = message;
     }
+  }
+
+  toggleRetryAvailability(visible) {
+    const retryButton = this.lyricsElements.retry;
+    if (!retryButton) {
+      return;
+    }
+
+    const shouldShow = Boolean(visible);
+    retryButton.hidden = !shouldShow;
+    retryButton.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+    retryButton.tabIndex = shouldShow ? 0 : -1;
   }
 
   updateLyricsHeader(title, artist) {
@@ -575,6 +721,8 @@ class JugiTube {
   }
 
   handleWindowResize() {
+    this.syncPlaceholderDimensions();
+
     if (!this.lyricsElements.root) {
       return;
     }
@@ -723,13 +871,18 @@ class JugiTube {
   }
   
   async loadLyrics(options = {}) {
-    const { manualRetry = false } = options;
+    const { manualRetry = false, retryLevel = 0 } = options;
 
     if (!this.isEnabled) {
       return;
     }
 
     this.ensureLyricsUi();
+    this.stopCaptionMirroring();
+
+    if (!manualRetry) {
+      this.manualRetryCount = 0;
+    }
 
     const metadata = this.extractVideoMetadata();
     const videoId = this.extractVideoId();
@@ -767,13 +920,15 @@ class JugiTube {
 
     this.lyricsRequestToken += 1;
     const requestToken = this.lyricsRequestToken;
+    const effectiveRetryLevel = manualRetry ? Math.max(retryLevel, this.manualRetryCount) : 0;
 
     try {
       const response = await chrome.runtime.sendMessage({
         action: 'getLyrics',
         title: metadata.title,
         artist: metadata.artist,
-        manualRetry
+        manualRetry,
+        retryLevel: effectiveRetryLevel
       });
 
       if (requestToken !== this.lyricsRequestToken) {
@@ -828,14 +983,15 @@ class JugiTube {
     button.disabled = true;
     button.classList.add('anomfin-lyrics__btn--loading');
     button.setAttribute('aria-busy', 'true');
-    button.textContent = 'Generating…';
+    button.textContent = 'Haetaan…';
 
     try {
-      await this.loadLyrics({ manualRetry: true });
+      this.manualRetryCount += 1;
+      await this.loadLyrics({ manualRetry: true, retryLevel: this.manualRetryCount });
     } catch (error) {
       console.error('Manual lyrics retry failed:', error);
       this.updateLyricsStatus('Lyriikoiden haku epäonnistui — yritä hetken päästä uudelleen.', 'error');
-      this.renderLyricsPlaceholder('Lyriikoita ei löytynyt – kokeile hakea hetken kuluttua uudelleen.', 'error');
+      this.showNoLyrics('Lyriikoita ei löytynyt – kokeile hakea hetken kuluttua uudelleen.');
     } finally {
       button.disabled = false;
       button.classList.remove('anomfin-lyrics__btn--loading');
@@ -881,13 +1037,14 @@ class JugiTube {
     }
 
     if (!this.currentLyrics.length) {
-      this.renderLyricsPlaceholder('Lyriikoita ei löytynyt — AnomFIN jatkaa etsintää.', 'empty');
-      this.updateLyricsStatus('Lyriikoita ei löytynyt', 'empty');
+      this.showNoLyrics();
       return;
     }
 
     const container = this.lyricsElements.lines;
     container.innerHTML = '';
+
+    this.stopCaptionMirroring();
 
     const fragment = document.createDocumentFragment();
 
@@ -914,8 +1071,155 @@ class JugiTube {
       ? message.trim()
       : 'No lyrics available for this video yet — AnomFIN scanners are still sweeping the net.';
     const variant = hasMessage ? 'error' : 'empty';
-    this.renderLyricsPlaceholder(displayMessage, variant);
+    if (!this.lyricsElements.lines) {
+      this.updateLyricsStatus(hasMessage ? 'Lyriikoiden haku epäonnistui' : 'Lyriikoita ei löytynyt', variant);
+      return;
+    }
+
+    const container = this.lyricsElements.lines;
+    container.innerHTML = '';
+
+    const placeholder = document.createElement('div');
+    placeholder.className = `anomfin-lyrics__placeholder ${variant === 'error' ? 'anomfin-lyrics__placeholder--error' : 'anomfin-lyrics__placeholder--empty'}`;
+    placeholder.textContent = displayMessage;
+    container.appendChild(placeholder);
+
+    const shouldMirrorCaptions = variant === 'error' || variant === 'empty';
+    if (shouldMirrorCaptions) {
+      const captionFallback = this.createCaptionFallback();
+      if (captionFallback) {
+        container.appendChild(captionFallback.wrapper);
+        this.startCaptionMirroring(captionFallback.feed);
+      } else {
+        this.stopCaptionMirroring();
+      }
+    } else {
+      this.stopCaptionMirroring();
+    }
+
     this.updateLyricsStatus(hasMessage ? 'Lyriikoiden haku epäonnistui' : 'Lyriikoita ei löytynyt', variant);
+    this.lyricLineElements = [];
+  }
+
+  createCaptionFallback() {
+    const wrapper = document.createElement('section');
+    wrapper.className = 'anomfin-lyrics__captions';
+    wrapper.setAttribute('aria-label', 'YouTube-tekstitysten varasyöte');
+
+    wrapper.innerHTML = `
+      <header class="anomfin-lyrics__captions-header">
+        <span class="anomfin-lyrics__captions-title">YouTube-tekstitykset</span>
+        <span class="anomfin-lyrics__captions-pill" aria-hidden="true">LIVE</span>
+      </header>
+      <div class="anomfin-lyrics__captions-feed" role="log" aria-live="polite"></div>
+      <p class="anomfin-lyrics__captions-hint">Jos teksti ei näy, varmista että YouTube-tekstitykset ovat päällä.</p>
+    `;
+
+    const feed = wrapper.querySelector('.anomfin-lyrics__captions-feed');
+    return feed ? { wrapper, feed } : null;
+  }
+
+  getCaptionSourceElement() {
+    return (
+      document.querySelector('.ytp-caption-window-container') ||
+      document.querySelector('.caption-window.ytp-caption-window-bottom') ||
+      null
+    );
+  }
+
+  startCaptionMirroring(targetElement) {
+    this.stopCaptionMirroring();
+
+    if (!targetElement) {
+      return;
+    }
+
+    this.captionMirrorElement = targetElement;
+
+    const updateFromSource = () => {
+      const source = this.getCaptionSourceElement();
+      this.captionSourceElement = source || null;
+
+      if (!source) {
+        this.captionMirrorElement.textContent = 'Tekstityksiä ei löytynyt — ota YouTube-tekstitykset käyttöön videon asetuksista.';
+        return;
+      }
+
+      const segments = Array.from(source.querySelectorAll('.ytp-caption-segment'));
+      const text = segments
+        .map((segment) => segment.textContent)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (text) {
+        this.captionMirrorElement.textContent = text;
+      } else {
+        this.captionMirrorElement.textContent = 'Tekstityksiä odotetaan…';
+      }
+    };
+
+    this.captionObserver = new MutationObserver(updateFromSource);
+    const initialSource = this.getCaptionSourceElement();
+    if (initialSource) {
+      this.captionSourceElement = initialSource;
+      try {
+        this.captionObserver.observe(initialSource, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      } catch (error) {
+        console.warn('Could not observe YouTube captions container:', error);
+      }
+    }
+
+    this.captionObserverInterval = window.setInterval(() => {
+      const latestSource = this.getCaptionSourceElement();
+      if (latestSource !== this.captionSourceElement) {
+        this.captionSourceElement = latestSource;
+        if (this.captionObserver) {
+          try {
+            this.captionObserver.disconnect();
+          } catch (error) {
+            // Ignore disconnect issues
+          }
+          if (latestSource) {
+            try {
+              this.captionObserver.observe(latestSource, {
+                childList: true,
+                subtree: true,
+                characterData: true
+              });
+            } catch (error) {
+              console.warn('Could not observe YouTube captions container:', error);
+            }
+          }
+        }
+      }
+      updateFromSource();
+    }, 2000);
+
+    updateFromSource();
+  }
+
+  stopCaptionMirroring() {
+    if (this.captionObserver) {
+      try {
+        this.captionObserver.disconnect();
+      } catch (error) {
+        // Ignore disconnect errors
+      }
+      this.captionObserver = null;
+    }
+
+    if (this.captionObserverInterval) {
+      clearInterval(this.captionObserverInterval);
+      this.captionObserverInterval = null;
+    }
+
+    this.captionSourceElement = null;
+    this.captionMirrorElement = null;
   }
   
   startLyricsSync() {
@@ -968,6 +1272,7 @@ class JugiTube {
   closeLyricsWindow() {
     this.detachLyricsDragListeners();
     window.removeEventListener('resize', this.boundHandleResize);
+    this.stopCaptionMirroring();
 
     if (this.lyricsElements.root && this.lyricsElements.root.parentElement) {
       this.lyricsElements.root.parentElement.removeChild(this.lyricsElements.root);
