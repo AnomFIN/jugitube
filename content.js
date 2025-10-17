@@ -469,7 +469,7 @@ class JugiTube {
             </div>
           </div>
           <div class="anomfin-lyrics__controls">
-            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden>Hae uudelleen</button>
+            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden aria-label="Hae uudelleen">Hae uudelleen</button>
             <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota</button>
           </div>
         </div>
