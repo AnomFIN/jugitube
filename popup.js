@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoSelect = document.getElementById('logoSelect');
   const backgroundReset = document.getElementById('backgroundReset');
   const logoReset = document.getElementById('logoReset');
-  const defaultLogoUrl = chrome.runtime.getURL('logo.png');
+  const defaultLogoUrl = chrome.runtime.getURL('logo_ANOMFIN_AUTOMATED_AI.png');
 
   function updateStatus(enabled) {
     if (enabled) {

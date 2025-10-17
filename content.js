@@ -46,7 +46,7 @@ class JugiTube {
       background: null,
       logo: null
     };
-    this.defaultLogoUrl = chrome.runtime.getURL('logo.png');
+    this.defaultLogoUrl = chrome.runtime.getURL('logo_ANOMFIN_AUTOMATED_AI.png');
 
     this.init();
   }
