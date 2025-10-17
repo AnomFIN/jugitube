@@ -34,8 +34,7 @@ class JugiTube {
     this.boundLyricsPointerMove = this.onLyricsPointerMove.bind(this);
     this.boundLyricsPointerUp = this.onLyricsPointerUp.bind(this);
     this.boundHandleResize = this.handleWindowResize.bind(this);
-    this.manualRetryInProgress = false;
-    this.manualRetryCount = 0;
+    this.resetManualRetryState();
     this.placeholderResizeObserver = null;
     this.placeholderResizeTargets = new Set();
     this.captionMirrorElement = null;
@@ -123,10 +122,15 @@ class JugiTube {
     this.currentLyrics = [];
     this.lyricLineElements = [];
     this.activeVideoId = null;
-    this.manualRetryCount = 0;
+    this.resetManualRetryState();
     this.stopCaptionMirroring();
     this.closeLyricsWindow();
     this.stopLyricsSync();
+  }
+
+  resetManualRetryState() {
+    this.manualRetryInProgress = false;
+    this.manualRetryCount = 0;
   }
 
   ensureVideoMonitoring() {
@@ -465,7 +469,7 @@ class JugiTube {
             </div>
           </div>
           <div class="anomfin-lyrics__controls">
-            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden aria-hidden="true">Hae uudelleen</button>
+            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden>Hae uudelleen</button>
             <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota</button>
           </div>
         </div>
@@ -583,7 +587,6 @@ class JugiTube {
 
     const shouldShow = Boolean(visible);
     retryButton.hidden = !shouldShow;
-    retryButton.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
     retryButton.tabIndex = shouldShow ? 0 : -1;
   }
 
@@ -881,7 +884,7 @@ class JugiTube {
     this.stopCaptionMirroring();
 
     if (!manualRetry) {
-      this.manualRetryCount = 0;
+      this.resetManualRetryState();
     }
 
     const metadata = this.extractVideoMetadata();
@@ -1294,7 +1297,7 @@ class JugiTube {
 
     this.lyricLineElements = [];
     this.dragState = null;
-    this.manualRetryInProgress = false;
+    this.resetManualRetryState();
   }
 
   attachNavigationListeners() {

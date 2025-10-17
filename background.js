@@ -1,4 +1,5 @@
 // Background script for JugiTube extension
+const HYPHENATED_TITLE_PARTS = 2;
 chrome.runtime.onInstalled.addListener(() => {
   console.log('JugiTube extension installed');
   
@@ -307,10 +308,7 @@ function loosenTitle(value) {
   }
 
   return value
-    .replace(/\([^)]*remix[^)]*\)/gi, '')
-    .replace(/\([^)]*edit[^)]*\)/gi, '')
-    .replace(/\([^)]*version[^)]*\)/gi, '')
-    .replace(/\([^)]*live[^)]*\)/gi, '')
+    .replace(/\([^)]*(?:remix|edit|version|live)[^)]*\)/gi, '')
     .replace(/\[[^\]]*\]/g, '')
     .replace(/\b(?:remix|edit|version|karaoke)\b/gi, '')
     .replace(/[^a-z0-9äöå\s]/gi, ' ')
@@ -368,7 +366,7 @@ function buildSearchCombos(title, artist, options = {}) {
 
   if (retryLevel > 0) {
     const hyphenSplit = baseTitle.split(/\s+-\s+/);
-    if (hyphenSplit.length === 2) {
+    if (hyphenSplit.length === HYPHENATED_TITLE_PARTS) {
       pushCombo(hyphenSplit[1], baseArtist || hyphenSplit[0]);
     }
   }
