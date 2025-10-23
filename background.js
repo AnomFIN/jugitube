@@ -1,39 +1,10 @@
-// Background script for AnomTube extension
+// Background script for JugiTube extension
 const HYPHENATED_TITLE_PARTS = 2;
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log('AnomTube extension installed');
-
-  const defaultState = {
-    enabled: false,
-    muteAds: false,
-    skipAds: false,
-    blockAds: false
-  };
-
-  if (details && details.reason === 'install') {
-    chrome.storage.sync.set(defaultState);
-    return;
-  }
-
-  if (details && details.reason === 'update') {
-    chrome.storage.sync.get(Object.keys(defaultState), (storedValues) => {
-      if (chrome.runtime.lastError) {
-        console.warn('Could not read stored settings during update:', chrome.runtime.lastError);
-        return;
-      }
-
-      const missingKeys = {};
-      for (const [key, value] of Object.entries(defaultState)) {
-        if (typeof storedValues[key] === 'undefined') {
-          missingKeys[key] = value;
-        }
-      }
-
-      if (Object.keys(missingKeys).length) {
-        chrome.storage.sync.set(missingKeys);
-      }
-    });
-  }
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('JugiTube extension installed');
+  
+  // Set default enabled state
+  chrome.storage.sync.set({ enabled: false });
 });
 
 // Listen for tab updates to inject scripts when YouTube pages load
