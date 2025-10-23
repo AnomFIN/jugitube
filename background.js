@@ -1,9 +1,39 @@
-// Background script for JugiTube extension
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('JugiTube extension installed');
-  
-  // Set default enabled state
-  chrome.storage.sync.set({ enabled: false });
+// Background script for AnomTube extension
+const HYPHENATED_TITLE_PARTS = 2;
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('AnomTube extension installed');
+
+  const defaultState = {
+    enabled: false,
+    muteAds: false,
+    skipAds: false,
+    blockAds: false
+  };
+
+  if (details && details.reason === 'install') {
+    chrome.storage.sync.set(defaultState);
+    return;
+  }
+
+  if (details && details.reason === 'update') {
+    chrome.storage.sync.get(Object.keys(defaultState), (storedValues) => {
+      if (chrome.runtime.lastError) {
+        console.warn('Could not read stored settings during update:', chrome.runtime.lastError);
+        return;
+      }
+
+      const missingKeys = {};
+      for (const [key, value] of Object.entries(defaultState)) {
+        if (typeof storedValues[key] === 'undefined') {
+          missingKeys[key] = value;
+        }
+      }
+
+      if (Object.keys(missingKeys).length) {
+        chrome.storage.sync.set(missingKeys);
+      }
+    });
+  }
 });
 
 // Listen for tab updates to inject scripts when YouTube pages load
@@ -307,10 +337,7 @@ function loosenTitle(value) {
   }
 
   return value
-    .replace(/\([^)]*remix[^)]*\)/gi, '')
-    .replace(/\([^)]*edit[^)]*\)/gi, '')
-    .replace(/\([^)]*version[^)]*\)/gi, '')
-    .replace(/\([^)]*live[^)]*\)/gi, '')
+    .replace(/\([^)]*(?:remix|edit|version|live)[^)]*\)/gi, '')
     .replace(/\[[^\]]*\]/g, '')
     .replace(/\b(?:remix|edit|version|karaoke)\b/gi, '')
     .replace(/[^a-z0-9äöå\s]/gi, ' ')
@@ -368,7 +395,7 @@ function buildSearchCombos(title, artist, options = {}) {
 
   if (retryLevel > 0) {
     const hyphenSplit = baseTitle.split(/\s+-\s+/);
-    if (hyphenSplit.length === 2) {
+    if (hyphenSplit.length === HYPHENATED_TITLE_PARTS) {
       pushCombo(hyphenSplit[1], baseArtist || hyphenSplit[0]);
     }
   }

@@ -1,5 +1,5 @@
-// Content script for JugiTube extension
-class JugiTube {
+// Content script for AnomTube extension
+class AnomTube {
   constructor() {
     this.isEnabled = false;
     this.lyricsElements = {
@@ -34,8 +34,7 @@ class JugiTube {
     this.boundLyricsPointerMove = this.onLyricsPointerMove.bind(this);
     this.boundLyricsPointerUp = this.onLyricsPointerUp.bind(this);
     this.boundHandleResize = this.handleWindowResize.bind(this);
-    this.manualRetryInProgress = false;
-    this.manualRetryCount = 0;
+    this.resetManualRetryState();
     this.placeholderResizeObserver = null;
     this.placeholderResizeTargets = new Set();
     this.captionMirrorElement = null;
@@ -46,7 +45,15 @@ class JugiTube {
       background: null,
       logo: null
     };
-    this.defaultLogoUrl = chrome.runtime.getURL('logo_ANOMFIN_AUTOMATED_AI.png');
+    this.defaultLogoUrl = chrome.runtime.getURL('logo.png');
+    this.adPreferences = {
+      muteAds: false,
+      skipAds: false,
+      blockAds: false
+    };
+    this.adMonitorInterval = null;
+    this.adMuteSnapshot = null;
+    this.wasMutedByAdControl = false;
 
     this.init();
   }
@@ -54,11 +61,14 @@ class JugiTube {
   async init() {
     // Check if extension is enabled
     const [syncState, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled']),
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds']),
       chrome.storage.local.get(['customBackground', 'customLogo', 'lyricsConsolePosition'])
     ]);
 
     this.isEnabled = syncState.enabled || false;
+    this.adPreferences.muteAds = Boolean(syncState.muteAds);
+    this.adPreferences.skipAds = Boolean(syncState.skipAds);
+    this.adPreferences.blockAds = Boolean(syncState.blockAds);
     this.customAssets.background = assets.customBackground || null;
     this.customAssets.logo = assets.customLogo || null;
     this.lyricsPosition = assets.lyricsConsolePosition || null;
@@ -69,51 +79,83 @@ class JugiTube {
 
     // Listen for messages from popup
     chrome.runtime.onMessage.addListener((request) => {
-      if (request.action === 'toggleJugiTube') {
+      if (request.action === 'toggleAnomTube') {
         this.isEnabled = request.enabled;
         if (this.isEnabled) {
           this.activate();
         } else {
           this.deactivate();
         }
+      } else if (request.action === 'updateAdPreferences') {
+        this.updateAdPreferences(request.preferences || {});
       }
     });
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== 'local') {
-        return;
+      if (areaName === 'local') {
+        let brandingChanged = false;
+
+        if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
+          this.customAssets.background = changes.customBackground.newValue || null;
+          brandingChanged = true;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(changes, 'customLogo')) {
+          this.customAssets.logo = changes.customLogo.newValue || null;
+          brandingChanged = true;
+        }
+
+        if (brandingChanged) {
+          this.updatePlaceholderAssets();
+          this.applyBrandingToLyricsWindow();
+        }
       }
 
-      let brandingChanged = false;
+      if (areaName === 'sync') {
+        if (Object.prototype.hasOwnProperty.call(changes, 'enabled')) {
+          const enabled = Boolean(changes.enabled.newValue);
+          if (this.isEnabled !== enabled) {
+            this.isEnabled = enabled;
+            if (this.isEnabled) {
+              this.activate();
+            } else {
+              this.deactivate();
+            }
+          }
+        }
 
-      if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
-        this.customAssets.background = changes.customBackground.newValue || null;
-        brandingChanged = true;
-      }
+        const preferenceUpdates = {};
+        let hasPreferenceUpdate = false;
 
-      if (Object.prototype.hasOwnProperty.call(changes, 'customLogo')) {
-        this.customAssets.logo = changes.customLogo.newValue || null;
-        brandingChanged = true;
-      }
+        for (const key of ['muteAds', 'skipAds', 'blockAds']) {
+          if (Object.prototype.hasOwnProperty.call(changes, key)) {
+            preferenceUpdates[key] = Boolean(changes[key].newValue);
+            hasPreferenceUpdate = true;
+          }
+        }
 
-      if (brandingChanged) {
-        this.updatePlaceholderAssets();
-        this.applyBrandingToLyricsWindow();
+        if (hasPreferenceUpdate) {
+          this.updateAdPreferences(preferenceUpdates);
+        }
       }
     });
   }
-  
+
   activate() {
-    console.log('JugiTube activated');
+    console.log('AnomTube activated');
     this.attachNavigationListeners();
     this.ensureVideoMonitoring();
     this.ensureLyricsUi();
     this.scheduleLyricsRefresh(true);
     this.startLyricsSync();
+    if (this.adPreferences.blockAds) {
+      this.clearPlayerAds();
+    }
+    this.updateAdControlLoop();
   }
 
   deactivate() {
-    console.log('JugiTube deactivated');
+    console.log('AnomTube deactivated');
     this.detachNavigationListeners();
     this.disconnectVideoMonitoring();
     this.unblockVideo();
@@ -123,10 +165,240 @@ class JugiTube {
     this.currentLyrics = [];
     this.lyricLineElements = [];
     this.activeVideoId = null;
-    this.manualRetryCount = 0;
+    this.resetManualRetryState();
     this.stopCaptionMirroring();
     this.closeLyricsWindow();
     this.stopLyricsSync();
+    this.stopAdMonitoring();
+  }
+
+  updateAdPreferences(preferences = {}) {
+    let changed = false;
+
+    for (const [key, value] of Object.entries(preferences)) {
+      if (!Object.prototype.hasOwnProperty.call(this.adPreferences, key)) {
+        continue;
+      }
+
+      const normalized = Boolean(value);
+      if (this.adPreferences[key] !== normalized) {
+        this.adPreferences[key] = normalized;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      if (this.adPreferences.blockAds) {
+        this.clearPlayerAds();
+      }
+      this.updateAdControlLoop();
+    } else if (!this.isEnabled) {
+      this.stopAdMonitoring();
+    }
+  }
+
+  updateAdControlLoop() {
+    if (!this.isEnabled) {
+      this.stopAdMonitoring();
+      return;
+    }
+
+    if (this.adPreferences.muteAds || this.adPreferences.skipAds || this.adPreferences.blockAds) {
+      this.startAdMonitoring();
+      this.processAdControls();
+    } else {
+      this.stopAdMonitoring();
+    }
+  }
+
+  startAdMonitoring() {
+    if (this.adMonitorInterval) {
+      return;
+    }
+
+    this.adMonitorInterval = setInterval(() => {
+      try {
+        this.processAdControls();
+      } catch (error) {
+        console.warn('Ad control loop error:', error);
+      }
+    }, 300);
+  }
+
+  stopAdMonitoring() {
+    if (this.adMonitorInterval) {
+      clearInterval(this.adMonitorInterval);
+      this.adMonitorInterval = null;
+    }
+
+    if (this.wasMutedByAdControl) {
+      this.restoreAdMutedVolume();
+    }
+  }
+
+  processAdControls() {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    if (!this.videoElement) {
+      const candidate = document.querySelector('video');
+      if (candidate) {
+        this.videoElement = candidate;
+      }
+    }
+
+    const player = document.querySelector('.html5-video-player');
+    const isAdActive = Boolean(
+      player &&
+        (player.classList.contains('ad-showing') || player.classList.contains('ad-interrupting'))
+    );
+
+    if (this.adPreferences.blockAds) {
+      this.clearPlayerAds();
+      if (isAdActive) {
+        this.fastForwardAd();
+      }
+    }
+
+    if (this.adPreferences.skipAds) {
+      this.trySkipAd();
+    }
+
+    if (this.adPreferences.muteAds) {
+      this.enforceAdMute(isAdActive);
+    } else if (this.wasMutedByAdControl) {
+      this.restoreAdMutedVolume();
+    }
+  }
+
+  enforceAdMute(isAdActive) {
+    if (!this.videoElement) {
+      return;
+    }
+
+    if (isAdActive) {
+      if (!this.wasMutedByAdControl) {
+        this.adMuteSnapshot = {
+          muted: this.videoElement.muted,
+          volume: this.videoElement.volume
+        };
+        this.wasMutedByAdControl = true;
+      }
+
+      if (!this.videoElement.muted) {
+        this.videoElement.muted = true;
+      }
+    } else if (this.wasMutedByAdControl) {
+      this.restoreAdMutedVolume();
+    }
+  }
+
+  restoreAdMutedVolume() {
+    if (!this.videoElement) {
+      this.wasMutedByAdControl = false;
+      this.adMuteSnapshot = null;
+      return;
+    }
+
+    if (this.adMuteSnapshot) {
+      this.videoElement.muted = Boolean(this.adMuteSnapshot.muted);
+      if (typeof this.adMuteSnapshot.volume === 'number') {
+        this.videoElement.volume = this.adMuteSnapshot.volume;
+      }
+    } else {
+      this.videoElement.muted = false;
+    }
+
+    this.wasMutedByAdControl = false;
+    this.adMuteSnapshot = null;
+  }
+
+  trySkipAd() {
+    const skipSelectors = [
+      '.ytp-ad-skip-button.ytp-button',
+      '.ytp-ad-skip-button-modern.ytp-button',
+      '.ytp-ad-skip-button-modern'
+    ];
+
+    for (const selector of skipSelectors) {
+      const skipButton = document.querySelector(selector);
+      if (skipButton && typeof skipButton.click === 'function' && skipButton.offsetParent !== null) {
+        skipButton.click();
+      }
+    }
+
+    const overlayCloseButtons = document.querySelectorAll(
+      '.ytp-ad-overlay-close-button, .ytp-ad-overlay-close-button-modern'
+    );
+    overlayCloseButtons.forEach((button) => {
+      if (button && typeof button.click === 'function') {
+        button.click();
+      }
+    });
+
+    const overlayAds = document.querySelectorAll('.ytp-ad-image-overlay, .ytp-ad-overlay-slot');
+    overlayAds.forEach((ad) => ad.remove());
+  }
+
+  fastForwardAd() {
+    if (!this.videoElement) {
+      return;
+    }
+
+    const duration = Number(this.videoElement.duration);
+    if (Number.isFinite(duration) && duration > 0) {
+      this.videoElement.currentTime = duration;
+    }
+  }
+
+  clearPlayerAds() {
+    try {
+      if (window.ytInitialPlayerResponse) {
+        window.ytInitialPlayerResponse.adPlacements = [];
+        window.ytInitialPlayerResponse.playerAds = [];
+      }
+
+      if (window.ytplayer && window.ytplayer.config && window.ytplayer.config.args) {
+        const args = window.ytplayer.config.args;
+        if (args.ad3_module) {
+          args.ad3_module = null;
+        }
+
+        if (args.raw_player_response) {
+          let response = args.raw_player_response;
+          if (typeof response === 'string') {
+            try {
+              response = JSON.parse(response);
+            } catch (error) {
+              response = null;
+            }
+          }
+
+          if (response) {
+            response.adPlacements = [];
+            response.playerAds = [];
+            args.raw_player_response = JSON.stringify(response);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to clear player ads payload:', error);
+    }
+
+    const adContainers = document.querySelectorAll(
+      '#player-ads, .ytp-ad-player-overlay, .ytp-ad-module, .video-ads, ytd-promoted-sparkles-web-renderer'
+    );
+    adContainers.forEach((element) => {
+      if (element && element.remove) {
+        element.remove();
+      }
+    });
+  }
+
+  resetManualRetryState() {
+    this.manualRetryInProgress = false;
+    this.manualRetryCount = 0;
   }
 
   ensureVideoMonitoring() {
@@ -188,6 +460,9 @@ class JugiTube {
     }
 
     this.applyPlaceholder(video);
+    if (isNewVideo && this.adPreferences.blockAds) {
+      this.clearPlayerAds();
+    }
 
     return { changed: isNewVideo, hasVideo: true };
   }
@@ -222,30 +497,30 @@ class JugiTube {
 
     if (!this.placeholderElement) {
       const placeholder = document.createElement('div');
-      placeholder.id = 'jugitube-placeholder';
+      placeholder.id = 'anomtube-placeholder';
       const floatingLogos = Array.from({ length: 6 }, (_, index) =>
-        `<span class="jugitube-backdrop__logo jugitube-backdrop__logo--${index + 1}"></span>`
+        `<span class="anomtube-backdrop__logo anomtube-backdrop__logo--${index + 1}"></span>`
       ).join('');
 
       placeholder.innerHTML = `
-        <div class="jugitube-overlay">
-          <div class="jugitube-backdrop" aria-hidden="true">
-            <div class="jugitube-backdrop__grid">${floatingLogos}</div>
-            <div class="jugitube-backdrop__veil"></div>
-            <div class="jugitube-backdrop__glow"></div>
+        <div class="anomtube-overlay">
+          <div class="anomtube-backdrop" aria-hidden="true">
+            <div class="anomtube-backdrop__grid">${floatingLogos}</div>
+            <div class="anomtube-backdrop__veil"></div>
+            <div class="anomtube-backdrop__glow"></div>
           </div>
-          <article class="jugitube-audio-only">
-            <header class="jugitube-brand-badge">
-              <img src="${logoUrl}" alt="AnomFIN Tools logo" class="jugitube-logo-img" />
-              <div class="jugitube-brand-text">
-                <span class="jugitube-brand-primary">AnomFIN Tools</span>
-                <span class="jugitube-brand-secondary">Audio only- tube</span>
+          <article class="anomtube-audio-only">
+            <header class="anomtube-brand-badge">
+              <img src="${logoUrl}" alt="AnomFIN Tools logo" class="anomtube-logo-img" />
+              <div class="anomtube-brand-text">
+                <span class="anomtube-brand-primary">AnomFIN Tools</span>
+                <span class="anomtube-brand-secondary">Audio only- tube</span>
               </div>
             </header>
-            <h2 class="jugitube-title">Audio Only Mode</h2>
-            <p class="jugitube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</p>
-            <p class="jugitube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</p>
-            <p class="jugitube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></p>
+            <h2 class="anomtube-title">Audio Only Mode</h2>
+            <p class="anomtube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</p>
+            <p class="anomtube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</p>
+            <p class="anomtube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></p>
           </article>
         </div>
       `;
@@ -269,10 +544,10 @@ class JugiTube {
     }
 
     const { logoUrl, backgroundUrl } = this.getAssetUrls();
-    this.placeholderElement.style.setProperty('--jugitube-logo', `url("${logoUrl}")`);
-    this.placeholderElement.style.setProperty('--jugitube-background', `url("${backgroundUrl}")`);
+    this.placeholderElement.style.setProperty('--anomtube-logo', `url("${logoUrl}")`);
+    this.placeholderElement.style.setProperty('--anomtube-background', `url("${backgroundUrl}")`);
 
-    const logoImg = this.placeholderElement.querySelector('.jugitube-logo-img');
+    const logoImg = this.placeholderElement.querySelector('.anomtube-logo-img');
     if (logoImg) {
       logoImg.src = logoUrl;
     }
@@ -465,12 +740,12 @@ class JugiTube {
             </div>
           </div>
           <div class="anomfin-lyrics__controls">
-            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden aria-hidden="true">Hae uudelleen</button>
+            <button type="button" class="anomfin-lyrics__btn anomfin-lyrics__btn--retry" data-role="retry" hidden aria-label="Hae uudelleen">Hae uudelleen</button>
             <button type="button" class="anomfin-lyrics__btn" data-role="toggle" aria-expanded="true">Piilota</button>
           </div>
         </div>
         <div class="anomfin-lyrics__meta">
-          <div class="anomfin-lyrics__song" data-role="title">🎵 JugiTube Lyrics</div>
+          <div class="anomfin-lyrics__song" data-role="title">🎵 AnomTube Lyrics</div>
           <div class="anomfin-lyrics__artist" data-role="artist">Karaoke Mode Active</div>
         </div>
         <div class="anomfin-lyrics__status" data-role="status" data-variant="loading" role="status" aria-live="polite">
@@ -583,7 +858,6 @@ class JugiTube {
 
     const shouldShow = Boolean(visible);
     retryButton.hidden = !shouldShow;
-    retryButton.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
     retryButton.tabIndex = shouldShow ? 0 : -1;
   }
 
@@ -881,7 +1155,7 @@ class JugiTube {
     this.stopCaptionMirroring();
 
     if (!manualRetry) {
-      this.manualRetryCount = 0;
+      this.resetManualRetryState();
     }
 
     const metadata = this.extractVideoMetadata();
@@ -1294,7 +1568,7 @@ class JugiTube {
 
     this.lyricLineElements = [];
     this.dragState = null;
-    this.manualRetryInProgress = false;
+    this.resetManualRetryState();
   }
 
   attachNavigationListeners() {
@@ -1333,11 +1607,11 @@ class JugiTube {
   }
 }
 
-// Initialize JugiTube when the page loads
+// Initialize AnomTube when the page loads
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new JugiTube();
+    new AnomTube();
   });
 } else {
-  new JugiTube();
+  new AnomTube();
 }

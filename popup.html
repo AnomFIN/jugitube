@@ -210,6 +210,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .asset-button {
@@ -261,6 +262,75 @@
       display: none;
     }
 
+    .asset-linebreak {
+      flex-basis: 100%;
+      height: 0;
+    }
+
+    .control-section {
+      margin-top: 24px;
+      background: rgba(12, 18, 42, 0.35);
+      border-radius: 16px;
+      padding: 18px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 38px rgba(3, 7, 18, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .control-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .control-subtitle {
+      font-size: 11px;
+      opacity: 0.75;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .control-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .control-card-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .control-card-description {
+      font-size: 12px;
+      opacity: 0.8;
+      letter-spacing: 0.4px;
+      line-height: 1.4;
+    }
+
     @media (min-width: 360px) {
       .asset-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -297,15 +367,15 @@
 <body>
   <div class="header">
     <div class="brand-lockup">
-      <img src="logo_ANOMFIN_AUTOMATED_AI.png" alt="AnomFIN Tools logo" class="logo-img">
-      <div class="logo">AnomFIN Tools · JugiTube</div>
+      <img src="logo.png" alt="AnomFIN Tools logo" class="logo-img">
+      <div class="logo">AnomFIN Tools · AnomTube</div>
     </div>
     <div class="subtitle">Audio only- tube · Powered by AnomTools</div>
     <div class="anomsign">Made by: Jugi @ AnomFIN</div>
   </div>
   
   <div class="toggle-container">
-    <span class="toggle-label">Enable JugiTube</span>
+    <span class="toggle-label">Enable AnomTube</span>
     <label class="toggle-switch">
       <input type="checkbox" id="enableToggle">
       <span class="slider"></span>
@@ -326,7 +396,44 @@
       <span>Popup lyrics window</span>
     </div>
   </div>
-  
+
+  <div class="control-section">
+    <div class="control-header">
+      <div class="control-title">AnomFIN Ad Shield</div>
+      <div class="control-subtitle">Hallinnoi mainosten hallintaa</div>
+    </div>
+    <div class="control-card">
+      <div class="control-card-text">
+        <div class="control-card-title">Mainosten ääni</div>
+        <div class="control-card-description">Vaienna YouTube-mainosten ääniraidat automaattisesti, kun AnomTube on päällä.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="muteAdsToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="control-card">
+      <div class="control-card-text">
+        <div class="control-card-title">Mainokset ASAP POIS</div>
+        <div class="control-card-description">Klikkaa “Ohita” -painiketta heti, kun se ilmestyy, ja poista bannerimainokset lennosta.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="skipAdsToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="control-card">
+      <div class="control-card-text">
+        <div class="control-card-title">Mainokset</div>
+        <div class="control-card-description">Estä preroll-mainokset kokonaan ja ohjaa soitin suoraan musiikkiin AnomFINin suodatuksella.</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="blockAdsToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
   <div class="asset-section">
     <div class="asset-header">
       <div class="asset-title">AnomFIN Visual Suite</div>
@@ -346,6 +453,8 @@
         <div class="asset-label">Valitse logo <span>AnomFIN Tools tunnus</span></div>
         <div class="asset-actions">
           <div class="asset-preview empty" id="logoPreview">Ei kuvaa</div>
+          <br class="asset-linebreak">
+          <br class="asset-linebreak">
           <button class="asset-button" id="logoSelect">Valitse</button>
           <button class="asset-button secondary" id="logoReset">Palauta</button>
         </div>

@@ -1,4 +1,4 @@
-// Popup script for JugiTube extension
+// Popup script for AnomTube extension
 document.addEventListener('DOMContentLoaded', async () => {
   const toggle = document.getElementById('enableToggle');
   const status = document.getElementById('status');
@@ -10,7 +10,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoSelect = document.getElementById('logoSelect');
   const backgroundReset = document.getElementById('backgroundReset');
   const logoReset = document.getElementById('logoReset');
-  const defaultLogoUrl = chrome.runtime.getURL('logo_ANOMFIN_AUTOMATED_AI.png');
+  const muteAdsToggle = document.getElementById('muteAdsToggle');
+  const skipAdsToggle = document.getElementById('skipAdsToggle');
+  const blockAdsToggle = document.getElementById('blockAdsToggle');
+  const defaultLogoUrl = chrome.runtime.getURL('logo.png');
 
   function updateStatus(enabled) {
     if (enabled) {
@@ -37,13 +40,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  async function notifyActiveTab(message) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url && tab.url.includes('youtube.com')) {
+        await chrome.tabs.sendMessage(tab.id, message);
+      }
+    } catch (error) {
+      console.log('Could not send message to content script:', error);
+    }
+  }
+
   async function loadState() {
-    const [{ enabled = false }, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled']),
+    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false }, assets] = await Promise.all([
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds']),
       chrome.storage.local.get(['customBackground', 'customLogo'])
     ]);
 
     toggle.checked = !!enabled;
+    muteAdsToggle.checked = !!muteAds;
+    skipAdsToggle.checked = !!skipAds;
+    blockAdsToggle.checked = !!blockAds;
     updateStatus(!!enabled);
 
     updatePreview(backgroundPreview, assets.customBackground || null, {
@@ -107,18 +124,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await chrome.storage.sync.set({ enabled });
     updateStatus(enabled);
+    await notifyActiveTab({
+      action: 'toggleAnomTube',
+      enabled
+    });
+  });
 
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.url && tab.url.includes('youtube.com')) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'toggleJugiTube',
-          enabled
-        });
+  function buildAdPreferencePayload() {
+    return {
+      action: 'updateAdPreferences',
+      preferences: {
+        muteAds: !!muteAdsToggle.checked,
+        skipAds: !!skipAdsToggle.checked,
+        blockAds: !!blockAdsToggle.checked
       }
-    } catch (error) {
-      console.log('Could not send message to content script:', error);
-    }
+    };
+  }
+
+  async function handleAdPreferenceChange(key, value) {
+    await chrome.storage.sync.set({ [key]: value });
+    await notifyActiveTab(buildAdPreferencePayload());
+  }
+
+  muteAdsToggle.addEventListener('change', (event) => {
+    handleAdPreferenceChange('muteAds', event.target.checked);
+  });
+
+  skipAdsToggle.addEventListener('change', (event) => {
+    handleAdPreferenceChange('skipAds', event.target.checked);
+  });
+
+  blockAdsToggle.addEventListener('change', (event) => {
+    handleAdPreferenceChange('blockAds', event.target.checked);
   });
 
   bindFileInput(backgroundInput, 'customBackground', backgroundPreview, {
@@ -143,22 +180,40 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') {
-      return;
+    if (areaName === 'local') {
+      if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
+        updatePreview(backgroundPreview, changes.customBackground.newValue || null, {
+          fallbackUrl: null,
+          emptyLabel: 'Ei kuvaa'
+        });
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'customLogo')) {
+        updatePreview(logoPreview, changes.customLogo.newValue || null, {
+          fallbackUrl: defaultLogoUrl,
+          emptyLabel: 'Ei kuvaa'
+        });
+      }
     }
 
-    if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
-      updatePreview(backgroundPreview, changes.customBackground.newValue || null, {
-        fallbackUrl: null,
-        emptyLabel: 'Ei kuvaa'
-      });
-    }
+    if (areaName === 'sync') {
+      if (Object.prototype.hasOwnProperty.call(changes, 'enabled')) {
+        const enabled = !!changes.enabled.newValue;
+        toggle.checked = enabled;
+        updateStatus(enabled);
+      }
 
-    if (Object.prototype.hasOwnProperty.call(changes, 'customLogo')) {
-      updatePreview(logoPreview, changes.customLogo.newValue || null, {
-        fallbackUrl: defaultLogoUrl,
-        emptyLabel: 'Ei kuvaa'
-      });
+      if (Object.prototype.hasOwnProperty.call(changes, 'muteAds')) {
+        muteAdsToggle.checked = !!changes.muteAds.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'skipAds')) {
+        skipAdsToggle.checked = !!changes.skipAds.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'blockAds')) {
+        blockAdsToggle.checked = !!changes.blockAds.newValue;
+      }
     }
   });
 });
