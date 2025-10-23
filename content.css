@@ -1,6 +1,6 @@
-/* Styles for AnomTube content script */
+/* Styles for JugiTube content script */
 
-#anomtube-placeholder {
+#jugitube-placeholder {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -23,13 +23,13 @@
   position: relative;
 }
 
-#anomtube-placeholder::before {
+#jugitube-placeholder::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 0;
   background-image: linear-gradient(135deg, rgba(10, 19, 52, 0.82), rgba(26, 48, 110, 0.65)),
-    var(--anomtube-background, var(--anomtube-logo));
+    var(--jugitube-background, var(--jugitube-logo));
   background-size: cover;
   background-position: center;
   filter: blur(12px);
@@ -37,7 +37,7 @@
   opacity: 0.55;
 }
 
-#anomtube-placeholder::after {
+#jugitube-placeholder::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -49,7 +49,7 @@
   opacity: 0.9;
 }
 
-.anomtube-overlay {
+.jugitube-overlay {
   width: 100%;
   height: 100%;
   display: flex;
@@ -60,7 +60,7 @@
   z-index: 2;
 }
 
-.anomtube-backdrop {
+.jugitube-backdrop {
   position: absolute;
   inset: -12%;
   overflow: hidden;
@@ -68,7 +68,7 @@
   pointer-events: none;
 }
 
-.anomtube-backdrop__grid {
+.jugitube-backdrop__grid {
   position: absolute;
   inset: -25%;
   display: grid;
@@ -76,47 +76,47 @@
   gap: clamp(40px, 8vw, 120px);
   transform: rotate(-12deg) scale(1.25);
   opacity: 0.45;
-  animation: anomtube-grid-drift 26s ease-in-out infinite;
+  animation: jugitube-grid-drift 26s ease-in-out infinite;
   filter: drop-shadow(0 38px 90px rgba(0, 0, 0, 0.55));
 }
 
-.anomtube-backdrop__logo {
+.jugitube-backdrop__logo {
   width: clamp(140px, 18vw, 240px);
   height: clamp(140px, 18vw, 240px);
-  background-image: var(--anomtube-logo);
+  background-image: var(--jugitube-logo);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   opacity: 0.55;
-  animation: anomtube-logo-orbit 18s ease-in-out infinite;
+  animation: jugitube-logo-orbit 18s ease-in-out infinite;
 }
 
-.anomtube-backdrop__logo--2 {
+.jugitube-backdrop__logo--2 {
   animation-delay: -4s;
   opacity: 0.4;
 }
 
-.anomtube-backdrop__logo--3 {
+.jugitube-backdrop__logo--3 {
   animation-delay: -8s;
   opacity: 0.5;
 }
 
-.anomtube-backdrop__logo--4 {
+.jugitube-backdrop__logo--4 {
   animation-delay: -12s;
   opacity: 0.35;
 }
 
-.anomtube-backdrop__logo--5 {
+.jugitube-backdrop__logo--5 {
   animation-delay: -16s;
   opacity: 0.45;
 }
 
-.anomtube-backdrop__logo--6 {
+.jugitube-backdrop__logo--6 {
   animation-delay: -20s;
   opacity: 0.38;
 }
 
-.anomtube-backdrop__veil {
+.jugitube-backdrop__veil {
   position: absolute;
   inset: -20%;
   background: linear-gradient(120deg, rgba(10, 18, 44, 0.6), rgba(15, 32, 86, 0.4)),
@@ -126,7 +126,7 @@
   filter: blur(18px);
 }
 
-.anomtube-backdrop__glow {
+.jugitube-backdrop__glow {
   position: absolute;
   inset: -18%;
   background: radial-gradient(circle at 32% 20%, rgba(43, 120, 255, 0.6), transparent 60%),
@@ -135,7 +135,7 @@
   filter: blur(38px);
 }
 
-.anomtube-audio-only {
+.jugitube-audio-only {
   pointer-events: auto;
   text-align: center;
   color: #f5f7ff;
@@ -155,7 +155,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.anomtube-audio-only::before {
+.jugitube-audio-only::before {
   content: '';
   position: absolute;
   inset: 12px;
@@ -165,7 +165,7 @@
   pointer-events: none;
 }
 
-.anomtube-brand-badge {
+.jugitube-brand-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -181,7 +181,7 @@
   text-align: left;
 }
 
-.anomtube-logo-img {
+.jugitube-logo-img {
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -190,26 +190,26 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
 }
 
-.anomtube-brand-text {
+.jugitube-brand-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
   align-items: flex-start;
 }
 
-.anomtube-brand-primary {
+.jugitube-brand-primary {
   font-size: 20px;
   font-weight: 700;
   color: #ffe082;
 }
 
-.anomtube-brand-secondary {
+.jugitube-brand-secondary {
   font-size: 13px;
   opacity: 0.78;
   letter-spacing: 2px;
 }
 
-.anomtube-title {
+.jugitube-title {
   font-size: clamp(28px, 4.6vw, 44px);
   font-weight: 800;
   letter-spacing: 1.8px;
@@ -219,7 +219,7 @@
   text-wrap: balance;
 }
 
-.anomtube-subtitle {
+.jugitube-subtitle {
   font-size: clamp(16px, 2.2vw, 20px);
   opacity: 0.95;
   max-width: min(440px, 100%);
@@ -227,7 +227,7 @@
   text-wrap: pretty;
 }
 
-.anomtube-note {
+.jugitube-note {
   font-size: clamp(14px, 1.8vw, 16px);
   opacity: 0.88;
   font-style: italic;
@@ -238,7 +238,7 @@
   text-wrap: balance;
 }
 
-.anomtube-credit {
+.jugitube-credit {
   margin-top: 6px;
   font-size: 13px;
   letter-spacing: 1.2px;
@@ -247,11 +247,11 @@
   text-wrap: balance;
 }
 
-.anomtube-credit strong {
+.jugitube-credit strong {
   color: #ffe082;
 }
 
-@keyframes anomtube-grid-drift {
+@keyframes jugitube-grid-drift {
   0%,
   100% {
     transform: rotate(-12deg) scale(1.25) translate3d(0, 0, 0);
@@ -262,7 +262,7 @@
   }
 }
 
-@keyframes anomtube-logo-orbit {
+@keyframes jugitube-logo-orbit {
   0%,
   100% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -282,66 +282,66 @@
 }
 
 @media (max-width: 1024px) {
-  .anomtube-audio-only {
+  .jugitube-audio-only {
     padding: 32px 28px;
     max-width: min(520px, 92%);
   }
 
-  .anomtube-title {
+  .jugitube-title {
     font-size: clamp(26px, 5.2vw, 36px);
   }
 
-  .anomtube-brand-badge {
+  .jugitube-brand-badge {
     gap: 14px;
     padding: 14px 24px;
   }
 
-  .anomtube-logo-img {
+  .jugitube-logo-img {
     width: 64px;
     height: 64px;
   }
 }
 
 @media (max-width: 768px) {
-  #anomtube-placeholder {
+  #jugitube-placeholder {
     border-radius: 16px;
   }
 
-  .anomtube-audio-only {
+  .jugitube-audio-only {
     padding: 28px 22px;
     max-width: 92%;
   }
 
-  .anomtube-brand-badge {
+  .jugitube-brand-badge {
     gap: 12px;
     padding: 12px 20px;
   }
 
-  .anomtube-subtitle,
-  .anomtube-note {
+  .jugitube-subtitle,
+  .jugitube-note {
     font-size: 14px;
   }
 }
 
 @media (max-width: 560px) {
-  .anomtube-brand-badge {
+  .jugitube-brand-badge {
     flex-direction: column;
     text-align: center;
   }
 
-  .anomtube-logo-img {
+  .jugitube-logo-img {
     width: 60px;
     height: 60px;
   }
 
-  .anomtube-title {
+  .jugitube-title {
     font-size: 26px;
     letter-spacing: 1.2px;
   }
 }
 
 /* Hide video controls styling when video is hidden */
-.anomtube-active .ytp-chrome-bottom {
+.jugitube-active .ytp-chrome-bottom {
   background: rgba(0, 0, 0, 0.8) !important;
 }
 

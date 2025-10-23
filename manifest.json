@@ -1,9 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AnomTube - Audio Only YouTube with Live Lyrics",
-  "version": "2.0.0",
+  "name": "JugiTube - Audio Only YouTube with Live Lyrics",
+  "version": "1.0.0",
   "description": "Blocks YouTube videos and plays only audio with karaoke-style live lyrics",
-  "author": "jugi@AnomFIN",
   "permissions": [
     "activeTab",
     "storage",
@@ -26,19 +25,15 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AnomTube Controls",
-    "default_icon": {
-      "16": "logo.png",
-      "32": "logo.png"
-    }
+    "default_title": "JugiTube Controls"
   },
   "background": {
     "service_worker": "background.js"
   },
   "icons": {
-    "16": "logo.png",
-    "32": "logo.png",
-    "48": "logo.png",
-    "128": "logo.png"
+    "16": "icons/icon16.svg",
+    "32": "icons/icon32.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
   }
 }
