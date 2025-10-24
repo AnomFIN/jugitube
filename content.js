@@ -46,6 +46,7 @@ class AnomTube {
       logo: null
     };
     this.defaultLogoUrl = chrome.runtime.getURL('logo.png');
+    this.defaultBackgroundUrl = chrome.runtime.getURL('asd.png');
     this.adPreferences = {
       muteAds: false,
       skipAds: false,
@@ -534,7 +535,7 @@ class AnomTube {
 
   getAssetUrls() {
     const logoUrl = this.customAssets.logo || this.defaultLogoUrl;
-    const backgroundUrl = this.customAssets.background || this.customAssets.logo || this.defaultLogoUrl;
+    const backgroundUrl = this.customAssets.background || this.defaultBackgroundUrl;
     return { logoUrl, backgroundUrl };
   }
 

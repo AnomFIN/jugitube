@@ -40,5 +40,11 @@
     "32": "logo.png",
     "48": "logo.png",
     "128": "logo.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["asd.png", "logo.png", "logo_ANOMFIN_AUTOMATED_AI.png"],
+      "matches": ["*://*.youtube.com/*"]
+    }
+  ]
 }
