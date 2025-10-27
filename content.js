@@ -510,18 +510,43 @@ class AnomTube {
             <div class="anomtube-backdrop__veil"></div>
             <div class="anomtube-backdrop__glow"></div>
           </div>
-          <article class="anomtube-audio-only">
-            <header class="anomtube-brand-badge">
-              <img src="${logoUrl}" alt="AnomFIN Tools logo" class="anomtube-logo-img" />
-              <div class="anomtube-brand-text">
-                <span class="anomtube-brand-primary">AnomFIN Tools</span>
-                <span class="anomtube-brand-secondary">Audio only- tube</span>
+          <article class="anomtube-audio-only" aria-label="AnomFIN Audio Only Soundstage">
+            <header class="anomtube-header">
+              <span class="anomtube-chip">Audio Soundstage · Signature Edition</span>
+              <div class="anomtube-brand-badge">
+                <img src="${logoUrl}" alt="AnomFIN Tools logo" class="anomtube-logo-img" />
+                <div class="anomtube-brand-text">
+                  <span class="anomtube-brand-primary">AnomFIN Tools</span>
+                  <span class="anomtube-brand-secondary">Audio Only · Tube</span>
+                </div>
               </div>
             </header>
-            <h2 class="anomtube-title">Audio Only Mode</h2>
-            <p class="anomtube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</p>
-            <p class="anomtube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</p>
-            <p class="anomtube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></p>
+            <section class="anomtube-body">
+              <h2 class="anomtube-title">Audio Only Mode</h2>
+              <p class="anomtube-subtitle">AnomTools soundstage engaged — lean back and enjoy the vibes.</p>
+              <div class="anomtube-divider" role="presentation"></div>
+              <ul class="anomtube-feature-grid" aria-label="AnomFIN highlight features">
+                <li class="anomtube-feature">
+                  <span class="anomtube-feature__icon" aria-hidden="true">🎧</span>
+                  <span class="anomtube-feature__title">Focus on fidelity</span>
+                  <span class="anomtube-feature__description">Spatial mastering with glass-flat noise floor for immersive night rides.</span>
+                </li>
+                <li class="anomtube-feature">
+                  <span class="anomtube-feature__icon" aria-hidden="true">🛰️</span>
+                  <span class="anomtube-feature__title">Live console overlay</span>
+                  <span class="anomtube-feature__description">Lyrics beam into the AnomFIN karaoke console with zero added latency.</span>
+                </li>
+                <li class="anomtube-feature">
+                  <span class="anomtube-feature__icon" aria-hidden="true">🔒</span>
+                  <span class="anomtube-feature__title">Ad shield engaged</span>
+                  <span class="anomtube-feature__description">Precision filtering keeps prerolls silent while audio takes center stage.</span>
+                </li>
+              </ul>
+            </section>
+            <footer class="anomtube-footer">
+              <p class="anomtube-note">Lyrics stream live inside the AnomFIN karaoke console overlay.</p>
+              <p class="anomtube-credit">Made by: <strong>Jugi @ AnomFIN · AnomTools</strong></p>
+            </footer>
           </article>
         </div>
       `;

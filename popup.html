@@ -3,281 +3,347 @@
 <head>
   <meta charset="utf-8">
   <style>
-    body {
-      width: 300px;
-      padding: 20px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      margin: 0;
+    :root {
+      color-scheme: dark;
+      --accent-primary: #6ca8ff;
+      --accent-secondary: #b56cff;
+      --base-surface: rgba(8, 14, 28, 0.78);
+      --base-border: rgba(255, 255, 255, 0.12);
+      --base-text: #f8faff;
+      font-family: 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
     }
-    
-    .header {
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      margin: 0;
+      padding: 22px;
+      font-family: inherit;
+      background: radial-gradient(circle at 10% -10%, rgba(112, 173, 255, 0.32), transparent 55%),
+        radial-gradient(circle at 88% 12%, rgba(255, 132, 255, 0.18), transparent 58%),
+        linear-gradient(160deg, #040810 0%, #0b162d 60%, #050913 100%);
+      color: var(--base-text);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: -40% -30% auto;
+      height: 320px;
+      background: radial-gradient(circle, rgba(119, 213, 255, 0.18), transparent 70%);
+      filter: blur(32px);
+      z-index: -1;
+    }
+
+    .popup-shell {
+      position: relative;
+      width: 100%;
+      border-radius: 28px;
+      padding: 28px 24px 32px;
+      background: var(--base-surface);
+      border: 1px solid var(--base-border);
+      box-shadow: 0 28px 85px rgba(3, 9, 26, 0.75);
+      backdrop-filter: blur(24px) saturate(165%);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 24px;
+      gap: 26px;
+      overflow: hidden;
+    }
+
+    .popup-shell::before,
+    .popup-shell::after {
+      content: '';
+      position: absolute;
+      pointer-events: none;
+      border-radius: inherit;
+      inset: 0;
+    }
+
+    .popup-shell::before {
+      background: linear-gradient(140deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+      opacity: 0.7;
+    }
+
+    .popup-shell::after {
+      inset: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      opacity: 0.7;
+    }
+
+    header.hero {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: -32px -42px 0;
+      background: radial-gradient(circle at 18% 22%, rgba(124, 198, 255, 0.24), transparent 65%),
+        radial-gradient(circle at 82% 12%, rgba(255, 176, 130, 0.2), transparent 70%);
+      filter: blur(18px);
+      z-index: -1;
+      opacity: 0.8;
     }
 
     .brand-lockup {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: rgba(0, 0, 0, 0.25);
-      padding: 12px 20px;
-      border-radius: 999px;
-      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+      gap: 18px;
+      padding: 16px 20px;
+      border-radius: 24px;
+      background: linear-gradient(140deg, rgba(13, 24, 50, 0.92), rgba(8, 16, 30, 0.78));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 18px 45px rgba(5, 12, 36, 0.6);
     }
 
     .logo-img {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.45);
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.55);
       object-fit: cover;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
     }
 
-    .logo {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .subtitle {
-      font-size: 12px;
-      opacity: 0.85;
-      letter-spacing: 1.6px;
-      text-transform: uppercase;
-    }
-
-    .anomsign {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      opacity: 0.7;
-    }
-    
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 20px 0;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
-    }
-    
-    .toggle-label {
-      font-weight: 500;
-    }
-    
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 34px;
-    }
-    
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 34px;
-    }
-    
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 26px;
-      width: 26px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-    
-    input:checked + .slider {
-      background-color: #4CAF50;
-    }
-    
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-    
-    .feature-list {
-      margin-top: 20px;
-    }
-    
-    .feature-item {
-      display: flex;
-      align-items: center;
-      margin: 10px 0;
-      font-size: 14px;
-    }
-    
-    .feature-icon {
-      margin-right: 10px;
-      width: 16px;
-      height: 16px;
-    }
-    
-    .status {
-      text-align: center;
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 14px;
-    }
-    
-    .asset-section {
-      margin-top: 24px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
-      padding: 16px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 15px 35px rgba(3, 7, 18, 0.35);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .asset-header {
+    .hero-copy {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .asset-title {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.6px;
-    }
-
-    .asset-subtitle {
-      font-size: 12px;
-      opacity: 0.7;
-      letter-spacing: 1.4px;
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1.6px;
       text-transform: uppercase;
     }
 
-    .asset-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.75;
+      letter-spacing: 2.1px;
+      text-transform: uppercase;
     }
 
-    .asset-field {
+    .anomsign {
+      font-size: 11px;
+      letter-spacing: 2.4px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .section {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 20px 18px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(12, 20, 42, 0.78), rgba(10, 16, 34, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 22px 65px rgba(4, 10, 32, 0.65);
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent 45%);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    .section__header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .section__title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .section__subtitle {
+      font-size: 12px;
+      line-height: 1.6;
+      opacity: 0.75;
+      margin: 0;
+    }
+
+    .toggle-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: rgba(9, 14, 36, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      gap: 16px;
+      padding: 18px 16px;
+      border-radius: 20px;
+      background: rgba(9, 16, 36, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
     }
 
-    .asset-label {
+    .toggle-copy {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      font-size: 13px;
-      letter-spacing: 0.5px;
+      gap: 4px;
     }
 
-    .asset-label span {
-      font-size: 11px;
-      opacity: 0.6;
-      text-transform: uppercase;
+    .toggle-label {
+      font-weight: 600;
       letter-spacing: 1.6px;
+      text-transform: uppercase;
+      font-size: 13px;
     }
 
-    .asset-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .asset-button {
-      background: rgba(255, 255, 255, 0.16);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 999px;
-      padding: 6px 14px;
+    .toggle-description {
       font-size: 12px;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: background 0.2s ease, transform 0.2s ease;
+      opacity: 0.72;
+      line-height: 1.5;
+      margin: 0;
     }
 
-    .asset-button:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
+    .toggle-switch {
+      position: relative;
+      display: inline-flex;
+      width: 62px;
+      height: 34px;
+      flex-shrink: 0;
     }
 
-    .asset-button.secondary {
-      background: transparent;
-      border-color: rgba(255, 255, 255, 0.18);
-      opacity: 0.8;
-    }
-
-    .asset-preview {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.25);
-      background-size: cover;
-      background-position: center;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-    }
-
-    .asset-preview.empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1.4px;
-      opacity: 0.6;
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .asset-input {
-      display: none;
-    }
-
-    .asset-linebreak {
-      flex-basis: 100%;
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
       height: 0;
     }
 
-    .control-section {
-      margin-top: 24px;
-      background: rgba(12, 18, 42, 0.35);
-      border-radius: 16px;
-      padding: 18px 16px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      backdrop-filter: blur(12px);
-      box-shadow: 0 18px 38px rgba(3, 7, 18, 0.35);
+    .slider {
+      position: relative;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: block;
+    }
+
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      top: 50%;
+      left: 4px;
+      transform: translateY(-50%);
+      background: linear-gradient(145deg, #ffffff 0%, #dfe7ff 100%);
+      box-shadow: 0 10px 25px rgba(30, 40, 90, 0.45);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease;
+    }
+
+    .slider::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: inherit;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.16), transparent);
+      opacity: 0.6;
+      transition: opacity 0.3s ease;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(120deg, var(--accent-primary), var(--accent-secondary));
+      box-shadow: 0 10px 25px rgba(104, 156, 255, 0.45);
+    }
+
+    input:checked + .slider::before {
+      transform: translate(28px, -50%);
+      box-shadow: 0 12px 30px rgba(80, 212, 255, 0.55);
+    }
+
+    input:checked + .slider::after {
+      opacity: 0.9;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .feature-item {
+      list-style: none;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 14px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(11, 20, 44, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 16px 35px rgba(4, 10, 28, 0.55);
+    }
+
+    .feature-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .feature-content {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 6px;
+    }
+
+    .feature-title {
+      font-size: 13px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .feature-description {
+      font-size: 12px;
+      opacity: 0.75;
+      line-height: 1.6;
+    }
+
+    .control-section {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      background: rgba(10, 16, 34, 0.78);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 20px 18px;
+      box-shadow: 0 20px 60px rgba(3, 9, 30, 0.6);
     }
 
     .control-header {
@@ -287,16 +353,16 @@
     }
 
     .control-title {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.8px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
       text-transform: uppercase;
     }
 
     .control-subtitle {
       font-size: 11px;
-      opacity: 0.75;
-      letter-spacing: 1.4px;
+      opacity: 0.72;
+      letter-spacing: 1.6px;
       text-transform: uppercase;
     }
 
@@ -304,169 +370,314 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 14px 12px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      gap: 16px;
+      padding: 16px 14px;
+      border-radius: 18px;
+      background: rgba(11, 20, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .control-card-text {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .control-card-title {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.6px;
+      font-size: 13px;
+      letter-spacing: 1.6px;
       text-transform: uppercase;
+      font-weight: 600;
     }
 
     .control-card-description {
       font-size: 12px;
-      opacity: 0.8;
-      letter-spacing: 0.4px;
-      line-height: 1.4;
+      opacity: 0.7;
+      line-height: 1.5;
+    }
+
+    .asset-section {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      background: rgba(9, 16, 36, 0.8);
+      border-radius: 24px;
+      padding: 20px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 22px 60px rgba(4, 10, 34, 0.62);
+    }
+
+    .asset-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .asset-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+    }
+
+    .asset-subtitle {
+      font-size: 11px;
+      opacity: 0.74;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+    }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .asset-field {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(12, 20, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .asset-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .asset-label span {
+      font-size: 11px;
+      opacity: 0.65;
+      letter-spacing: 1.6px;
+    }
+
+    .asset-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .asset-preview {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      background-size: cover;
+      background-position: center;
+      background-color: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .asset-preview.empty {
+      background-image: none;
+    }
+
+    .asset-button {
+      background: linear-gradient(135deg, rgba(120, 174, 255, 0.28), rgba(176, 120, 255, 0.28));
+      color: var(--base-text);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 11px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .asset-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(104, 156, 255, 0.35);
+    }
+
+    .asset-button.secondary {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.16);
+      opacity: 0.82;
+    }
+
+    .asset-input {
+      display: none;
+    }
+
+    .status {
+      text-align: center;
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 12px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      box-shadow: 0 18px 40px rgba(6, 14, 40, 0.6);
+    }
+
+    .status.active {
+      background: rgba(80, 243, 192, 0.18);
+      border-color: rgba(80, 243, 192, 0.45);
+      color: var(--base-text);
+    }
+
+    .status.inactive {
+      background: rgba(255, 193, 7, 0.18);
+      border-color: rgba(255, 193, 7, 0.4);
+      color: var(--base-text);
     }
 
     @media (min-width: 360px) {
       .asset-grid {
         grid-template-columns: repeat(2, 1fr);
       }
-
-      .asset-field {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .asset-actions {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .asset-preview {
-        align-self: stretch;
-        width: 100%;
-        height: 64px;
-      }
     }
 
-    .status.active {
-      background-color: rgba(76, 175, 80, 0.2);
-      border: 1px solid #4CAF50;
-    }
-    
-    .status.inactive {
-      background-color: rgba(255, 193, 7, 0.2);
-      border: 1px solid #FFC107;
+    @media (max-width: 340px) {
+      body {
+        width: 100%;
+        padding: 16px;
+      }
+
+      .popup-shell {
+        padding: 24px 20px 28px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="brand-lockup">
-      <img src="logo.png" alt="AnomFIN Tools logo" class="logo-img">
-      <div class="logo">AnomFIN Tools · AnomTube</div>
-    </div>
-    <div class="subtitle">Audio only- tube · Powered by AnomTools</div>
-    <div class="anomsign">Made by: Jugi @ AnomFIN</div>
-  </div>
-  
-  <div class="toggle-container">
-    <span class="toggle-label">Enable AnomTube</span>
-    <label class="toggle-switch">
-      <input type="checkbox" id="enableToggle">
-      <span class="slider"></span>
-    </label>
-  </div>
-  
-  <div class="feature-list">
-    <div class="feature-item">
-      <span class="feature-icon">🎵</span>
-      <span>Audio-only playback</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-icon">🎤</span>
-      <span>Live karaoke lyrics</span>
-    </div>
-    <div class="feature-item">
-      <span class="feature-icon">📱</span>
-      <span>Popup lyrics window</span>
-    </div>
-  </div>
-
-  <div class="control-section">
-    <div class="control-header">
-      <div class="control-title">AnomFIN Ad Shield</div>
-      <div class="control-subtitle">Hallinnoi mainosten hallintaa</div>
-    </div>
-    <div class="control-card">
-      <div class="control-card-text">
-        <div class="control-card-title">Mainosten ääni</div>
-        <div class="control-card-description">Vaienna YouTube-mainosten ääniraidat automaattisesti, kun AnomTube on päällä.</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="muteAdsToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div class="control-card">
-      <div class="control-card-text">
-        <div class="control-card-title">Mainokset ASAP POIS</div>
-        <div class="control-card-description">Klikkaa “Ohita” -painiketta heti, kun se ilmestyy, ja poista bannerimainokset lennosta.</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="skipAdsToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div class="control-card">
-      <div class="control-card-text">
-        <div class="control-card-title">Mainokset</div>
-        <div class="control-card-description">Estä preroll-mainokset kokonaan ja ohjaa soitin suoraan musiikkiin AnomFINin suodatuksella.</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="blockAdsToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-  </div>
-
-  <div class="asset-section">
-    <div class="asset-header">
-      <div class="asset-title">AnomFIN Visual Suite</div>
-      <div class="asset-subtitle">Mukauta AnomTools soundstage -signaali</div>
-    </div>
-    <div class="asset-grid">
-      <div class="asset-field">
-        <div class="asset-label">Valitse taustakuva <span>Blokattu videopinta</span></div>
-        <div class="asset-actions">
-          <div class="asset-preview empty" id="backgroundPreview">Ei kuvaa</div>
-          <button class="asset-button" id="backgroundSelect">Valitse</button>
-          <button class="asset-button secondary" id="backgroundReset">Palauta</button>
+  <div class="popup-shell">
+    <header class="hero">
+      <div class="brand-lockup">
+        <img src="logo.png" alt="AnomFIN Tools logo" class="logo-img">
+        <div class="hero-copy">
+          <div class="logo">AnomFIN Tools · AnomTube</div>
+          <div class="subtitle">Audio only- tube · Powered by AnomTools</div>
         </div>
-        <input type="file" accept="image/*" id="backgroundInput" class="asset-input">
       </div>
-      <div class="asset-field">
-        <div class="asset-label">Valitse logo <span>AnomFIN Tools tunnus</span></div>
-        <div class="asset-actions">
-          <div class="asset-preview empty" id="logoPreview">Ei kuvaa</div>
-          <br class="asset-linebreak">
-          <br class="asset-linebreak">
-          <button class="asset-button" id="logoSelect">Valitse</button>
-          <button class="asset-button secondary" id="logoReset">Palauta</button>
+      <div class="anomsign">Made by: Jugi @ AnomFIN</div>
+    </header>
+
+    <section class="section">
+      <div class="section__header">
+        <h2 class="section__title">Audio only cockpit</h2>
+        <p class="section__subtitle">Tesla-grade calm for every stream — dim the video stage and let the curated audio soundstage breathe.</p>
+      </div>
+      <div class="toggle-container">
+        <div class="toggle-copy">
+          <span class="toggle-label">Enable AnomTube</span>
+          <p class="toggle-description">Engages the minimalist audio dashboard and keeps focus on the track.</p>
         </div>
-        <input type="file" accept="image/*" id="logoInput" class="asset-input">
+        <label class="toggle-switch">
+          <input type="checkbox" id="enableToggle">
+          <span class="slider"></span>
+        </label>
       </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon">🎵</div>
+          <div class="feature-content">
+            <div class="feature-title">Audio-only playback</div>
+            <div class="feature-description">Precision tuned pipeline that routes clean signal straight to your headphones.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🎤</div>
+          <div class="feature-content">
+            <div class="feature-title">Live karaoke lyrics</div>
+            <div class="feature-description">Lyrics sync into the AnomFIN overlay in real-time for effortless sing-alongs.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📱</div>
+          <div class="feature-content">
+            <div class="feature-title">Popup lyrics window</div>
+            <div class="feature-description">Drop a floating companion window anywhere — perfect for dual-screen studio rigs.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="control-section">
+      <div class="control-header">
+        <div class="control-title">AnomFIN Ad Shield</div>
+        <div class="control-subtitle">Hallinnoi mainosten hallintaa</div>
+      </div>
+      <div class="control-card">
+        <div class="control-card-text">
+          <div class="control-card-title">Mainosten ääni</div>
+          <div class="control-card-description">Vaienna YouTube-mainosten ääniraidat automaattisesti, kun AnomTube on päällä.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="muteAdsToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="control-card">
+        <div class="control-card-text">
+          <div class="control-card-title">Mainokset ASAP POIS</div>
+          <div class="control-card-description">Klikkaa "Ohita" -painiketta heti, kun se ilmestyy, ja poista bannerimainokset lennosta.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="skipAdsToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="control-card">
+        <div class="control-card-text">
+          <div class="control-card-title">Mainokset</div>
+          <div class="control-card-description">Estä preroll-mainokset kokonaan ja ohjaa soitin suoraan musiikkiin AnomFINin suodatuksella.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="blockAdsToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="asset-section">
+      <div class="asset-header">
+        <div class="asset-title">AnomFIN Visual Suite</div>
+        <div class="asset-subtitle">Mukauta AnomTools soundstage -signaali</div>
+      </div>
+      <div class="asset-grid">
+        <div class="asset-field">
+          <div class="asset-label">Valitse taustakuva <span>Blokattu videopinta</span></div>
+          <div class="asset-actions">
+            <div class="asset-preview empty" id="backgroundPreview">Ei kuvaa</div>
+            <button class="asset-button" id="backgroundSelect">Valitse</button>
+            <button class="asset-button secondary" id="backgroundReset">Palauta</button>
+          </div>
+          <input type="file" accept="image/*" id="backgroundInput" class="asset-input">
+        </div>
+        <div class="asset-field">
+          <div class="asset-label">Valitse logo <span>AnomFIN Tools tunnus</span></div>
+          <div class="asset-actions">
+            <div class="asset-preview empty" id="logoPreview">Ei kuvaa</div>
+            <button class="asset-button" id="logoSelect">Valitse</button>
+            <button class="asset-button secondary" id="logoReset">Palauta</button>
+          </div>
+          <input type="file" accept="image/*" id="logoInput" class="asset-input">
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status inactive">
+      Extension is disabled
     </div>
   </div>
 
-  <div id="status" class="status inactive">
-    Extension is disabled
-  </div>
-  
   <script src="popup.js"></script>
 </body>
 </html>
