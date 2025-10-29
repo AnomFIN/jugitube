@@ -156,12 +156,14 @@ class AnomTube {
     this.attachNavigationListeners();
     
     // Check if video blocking should be disabled based on jugitubeSettings
-    const shouldBlockVideo = !window.jugitubeSettings || !window.jugitubeSettings.allowVideoKeepAdSettings;
+    // If allowVideoKeepAdSettings is true, we DON'T block video but still apply ad controls
+    const allowVideoKeepAdSettings = window.jugitubeSettings?.allowVideoKeepAdSettings === true;
+    const shouldBlockVideo = !allowVideoKeepAdSettings;
     
     if (shouldBlockVideo) {
       this.ensureVideoMonitoring();
     } else {
-      console.log('Video blocking disabled by jugitubeSettings.allowVideoKeepAdSettings');
+      console.log('Video blocking disabled by jugitubeSettings.allowVideoKeepAdSettings = true');
     }
     
     this.ensureLyricsUi();
