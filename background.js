@@ -7,7 +7,9 @@ chrome.runtime.onInstalled.addListener((details) => {
     enabled: false,
     muteAds: false,
     skipAds: false,
-    blockAds: false
+    blockAds: false,
+    hideLyrics: false,
+    allowVideo: false
   };
 
   if (details && details.reason === 'install') {

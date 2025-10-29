@@ -52,9 +52,14 @@ class AnomTube {
       skipAds: false,
       blockAds: false
     };
+    this.hideLyrics = false;
+    this.allowVideo = false;
     this.adMonitorInterval = null;
     this.adMuteSnapshot = null;
     this.wasMutedByAdControl = false;
+    this.adSkipperObserver = null;
+    this.adSkipAttempts = new Map();
+    this.lastAdSkipAttempt = 0;
 
     this.init();
   }
@@ -62,7 +67,7 @@ class AnomTube {
   async init() {
     // Check if extension is enabled
     const [syncState, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds']),
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo']),
       chrome.storage.local.get(['customBackground', 'customLogo', 'lyricsConsolePosition'])
     ]);
 
@@ -70,6 +75,8 @@ class AnomTube {
     this.adPreferences.muteAds = Boolean(syncState.muteAds);
     this.adPreferences.skipAds = Boolean(syncState.skipAds);
     this.adPreferences.blockAds = Boolean(syncState.blockAds);
+    this.hideLyrics = Boolean(syncState.hideLyrics);
+    this.allowVideo = Boolean(syncState.allowVideo);
     this.customAssets.background = assets.customBackground || null;
     this.customAssets.logo = assets.customLogo || null;
     this.lyricsPosition = assets.lyricsConsolePosition || null;
@@ -89,6 +96,8 @@ class AnomTube {
         }
       } else if (request.action === 'updateAdPreferences') {
         this.updateAdPreferences(request.preferences || {});
+      } else if (request.action === 'updateSettings') {
+        this.updateSettings(request.settings || {});
       }
     });
 
@@ -138,6 +147,20 @@ class AnomTube {
         if (hasPreferenceUpdate) {
           this.updateAdPreferences(preferenceUpdates);
         }
+
+        const settingsUpdates = {};
+        let hasSettingsUpdate = false;
+
+        for (const key of ['hideLyrics', 'allowVideo']) {
+          if (Object.prototype.hasOwnProperty.call(changes, key)) {
+            settingsUpdates[key] = Boolean(changes[key].newValue);
+            hasSettingsUpdate = true;
+          }
+        }
+
+        if (hasSettingsUpdate) {
+          this.updateSettings(settingsUpdates);
+        }
       }
     });
   }
@@ -146,9 +169,13 @@ class AnomTube {
     console.log('AnomTube activated');
     this.attachNavigationListeners();
     this.ensureVideoMonitoring();
-    this.ensureLyricsUi();
-    this.scheduleLyricsRefresh(true);
-    this.startLyricsSync();
+    
+    if (!this.hideLyrics) {
+      this.ensureLyricsUi();
+      this.scheduleLyricsRefresh(true);
+      this.startLyricsSync();
+    }
+    
     if (this.adPreferences.blockAds) {
       this.clearPlayerAds();
     }
@@ -171,6 +198,7 @@ class AnomTube {
     this.closeLyricsWindow();
     this.stopLyricsSync();
     this.stopAdMonitoring();
+    this.stopAdSkipperObserver();
   }
 
   updateAdPreferences(preferences = {}) {
@@ -198,17 +226,62 @@ class AnomTube {
     }
   }
 
+  updateSettings(settings = {}) {
+    let changed = false;
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'hideLyrics')) {
+      const newValue = Boolean(settings.hideLyrics);
+      if (this.hideLyrics !== newValue) {
+        this.hideLyrics = newValue;
+        changed = true;
+
+        if (this.hideLyrics) {
+          this.closeLyricsWindow();
+        } else if (this.isEnabled) {
+          this.ensureLyricsUi();
+        }
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'allowVideo')) {
+      const newValue = Boolean(settings.allowVideo);
+      if (this.allowVideo !== newValue) {
+        this.allowVideo = newValue;
+        changed = true;
+
+        if (this.isEnabled) {
+          if (this.allowVideo) {
+            this.unblockVideo();
+          } else {
+            this.updateVideoElement();
+          }
+        }
+      }
+    }
+  }
+
   updateAdControlLoop() {
     if (!this.isEnabled) {
       this.stopAdMonitoring();
       return;
     }
 
-    if (this.adPreferences.muteAds || this.adPreferences.skipAds || this.adPreferences.blockAds) {
+    const needsAdMonitoring = this.adPreferences.muteAds || 
+                               this.adPreferences.skipAds || 
+                               this.adPreferences.blockAds;
+
+    if (needsAdMonitoring) {
       this.startAdMonitoring();
       this.processAdControls();
+      
+      if (this.adPreferences.skipAds) {
+        this.startAdSkipperObserver();
+      } else {
+        this.stopAdSkipperObserver();
+      }
     } else {
       this.stopAdMonitoring();
+      this.stopAdSkipperObserver();
     }
   }
 
@@ -235,6 +308,8 @@ class AnomTube {
     if (this.wasMutedByAdControl) {
       this.restoreAdMutedVolume();
     }
+
+    this.stopAdSkipperObserver();
   }
 
   processAdControls() {
@@ -316,30 +391,188 @@ class AnomTube {
   }
 
   trySkipAd() {
+    // Rate limit: no more than once every 250ms
+    const now = Date.now();
+    if (now - this.lastAdSkipAttempt < 250) {
+      return;
+    }
+    this.lastAdSkipAttempt = now;
+
     const skipSelectors = [
       '.ytp-ad-skip-button.ytp-button',
       '.ytp-ad-skip-button-modern.ytp-button',
-      '.ytp-ad-skip-button-modern'
+      '.ytp-ad-skip-button-modern',
+      '.ytp-ad-skip-button',
+      'button.ytp-ad-skip-button-modern',
+      '.ytp-skip-ad-button'
     ];
 
     for (const selector of skipSelectors) {
-      const skipButton = document.querySelector(selector);
-      if (skipButton && typeof skipButton.click === 'function' && skipButton.offsetParent !== null) {
-        skipButton.click();
-      }
+      const skipButtons = document.querySelectorAll(selector);
+      skipButtons.forEach((skipButton) => {
+        if (this.tryClickAdButton(skipButton)) {
+          return;
+        }
+      });
     }
 
     const overlayCloseButtons = document.querySelectorAll(
       '.ytp-ad-overlay-close-button, .ytp-ad-overlay-close-button-modern'
     );
     overlayCloseButtons.forEach((button) => {
-      if (button && typeof button.click === 'function') {
-        button.click();
-      }
+      this.tryClickAdButton(button);
     });
 
     const overlayAds = document.querySelectorAll('.ytp-ad-image-overlay, .ytp-ad-overlay-slot');
-    overlayAds.forEach((ad) => ad.remove());
+    overlayAds.forEach((ad) => {
+      try {
+        ad.remove();
+      } catch (error) {
+        // Ignore removal errors
+      }
+    });
+  }
+
+  tryClickAdButton(button) {
+    if (!button || !button.offsetParent) {
+      return false;
+    }
+
+    const buttonKey = this.getButtonIdentifier(button);
+    const attempts = this.adSkipAttempts.get(buttonKey) || { count: 0, lastAttempt: 0 };
+    const now = Date.now();
+
+    // Rate limit per button: max 3 attempts per minute
+    if (attempts.count >= 3 && now - attempts.lastAttempt < 60000) {
+      return false;
+    }
+
+    if (now - attempts.lastAttempt > 60000) {
+      attempts.count = 0;
+    }
+
+    try {
+      // Try multiple click methods
+      if (typeof button.click === 'function') {
+        button.click();
+        attempts.count++;
+        attempts.lastAttempt = now;
+        this.adSkipAttempts.set(buttonKey, attempts);
+        return true;
+      }
+
+      // Fallback: dispatch pointer events
+      const events = ['pointerdown', 'mousedown', 'click', 'mouseup', 'pointerup'];
+      events.forEach((eventType) => {
+        const event = new PointerEvent(eventType, {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: 'mouse'
+        });
+        button.dispatchEvent(event);
+      });
+
+      attempts.count++;
+      attempts.lastAttempt = now;
+      this.adSkipAttempts.set(buttonKey, attempts);
+      return true;
+    } catch (error) {
+      console.warn('Failed to click ad button:', error);
+      return false;
+    }
+  }
+
+  getButtonIdentifier(button) {
+    try {
+      const rect = button.getBoundingClientRect();
+      return `${button.className}_${Math.round(rect.top)}_${Math.round(rect.left)}`;
+    } catch (error) {
+      return `${button.className}_${Date.now()}`;
+    }
+  }
+
+  startAdSkipperObserver() {
+    if (this.adSkipperObserver) {
+      return;
+    }
+
+    const checkForSkipButtons = () => {
+      if (!this.isEnabled || !this.adPreferences.skipAds) {
+        return;
+      }
+
+      this.trySkipAd();
+    };
+
+    this.adSkipperObserver = new MutationObserver((mutations) => {
+      let shouldCheck = false;
+
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node;
+              // Check if the added node or its children contain skip buttons
+              if (element.classList && (
+                element.classList.contains('ytp-ad-skip-button') ||
+                element.classList.contains('ytp-ad-skip-button-modern') ||
+                element.querySelector && element.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern')
+              )) {
+                shouldCheck = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (mutation.type === 'attributes' && mutation.target) {
+          const target = mutation.target;
+          // Check if visibility or display changed on relevant elements
+          if (target.classList && (
+            target.classList.contains('ytp-ad-skip-button') ||
+            target.classList.contains('ytp-ad-skip-button-modern') ||
+            target.classList.contains('html5-video-player')
+          )) {
+            shouldCheck = true;
+          }
+        }
+
+        if (shouldCheck) {
+          break;
+        }
+      }
+
+      if (shouldCheck) {
+        // Small delay to ensure DOM is stable
+        setTimeout(checkForSkipButtons, 100);
+      }
+    });
+
+    // Observe the entire player container
+    const playerContainer = document.querySelector('.html5-video-player') || document.body;
+    if (playerContainer) {
+      this.adSkipperObserver.observe(playerContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class', 'hidden']
+      });
+    }
+
+    // Initial check
+    checkForSkipButtons();
+  }
+
+  stopAdSkipperObserver() {
+    if (this.adSkipperObserver) {
+      this.adSkipperObserver.disconnect();
+      this.adSkipperObserver = null;
+    }
+
+    // Clean up old attempt records
+    this.adSkipAttempts.clear();
   }
 
   fastForwardAd() {
@@ -460,7 +693,16 @@ class AnomTube {
       this.originalVideoDisplay = video.style.display;
     }
 
-    this.applyPlaceholder(video);
+    // Only apply placeholder if allowVideo is false
+    if (!this.allowVideo) {
+      this.applyPlaceholder(video);
+    } else {
+      // If allowVideo is true, ensure video is visible
+      if (video.style.display === 'none') {
+        video.style.display = this.originalVideoDisplay || '';
+      }
+    }
+    
     if (isNewVideo && this.adPreferences.blockAds) {
       this.clearPlayerAds();
     }
@@ -739,8 +981,14 @@ class AnomTube {
   }
 
   ensureLyricsUi() {
+    if (this.hideLyrics) {
+      return;
+    }
+
     if (this.lyricsElements.root && document.body && document.body.contains(this.lyricsElements.root)) {
       this.applyBrandingToLyricsWindow();
+      // Ensure the console is visible (remove hidden class if present)
+      this.lyricsElements.root.classList.remove('anomfin-lyrics--hidden');
       return;
     }
 
