@@ -2,7 +2,7 @@
 (function() {
   'use strict';
 
-  console.log('JugiTube: Main module initializing');
+  console.log('AnomTube: Main module initializing');
 
   // Module initialization state
   const modules = {
@@ -36,24 +36,24 @@
     const blockVideo = await shouldBlockVideo();
     
     if (blockVideo) {
-      console.log('JugiTube: Video blocking is active');
+      console.log('AnomTube: Video blocking is active');
       // The existing content.js (AnomTube class) handles video blocking
       // This main.js just coordinates when it should be active
     } else {
-      console.log('JugiTube: Video blocking is disabled (allowVideoKeepAdSettings or extension disabled)');
+      console.log('AnomTube: Video blocking is disabled (allowVideoKeepAdSettings or extension disabled)');
     }
   }
 
   // Initialize ad-related modules
   function initAdModules() {
-    console.log('JugiTube: Ad modules initialized');
+    console.log('AnomTube: Ad modules initialized');
     // Ad modules (adSkipper) work independently of video blocking
     // They are controlled by their own settings
   }
 
   // Handle settings changes
   function handleSettingsChange(event) {
-    console.log('JugiTube: Settings changed', event.detail);
+    console.log('AnomTube: Settings changed', event.detail);
     
     // Re-check if video blocking should be active
     initVideoBlocking();
@@ -63,13 +63,13 @@
   function checkModules() {
     const allLoaded = Object.values(modules).every(loaded => loaded);
     if (allLoaded) {
-      console.log('JugiTube: All modules initialized successfully');
+      console.log('AnomTube: All modules initialized successfully');
     }
   }
 
   // Initialize all modules
   function init() {
-    console.log('JugiTube: Starting initialization');
+    console.log('AnomTube: Starting initialization');
     
     // Mark modules as loaded (they initialize themselves)
     modules.settingsApply = true;

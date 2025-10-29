@@ -20,7 +20,7 @@
         return { ...defaultSettings, ...JSON.parse(stored) };
       }
     } catch (error) {
-      console.error('JugiTube: Error loading settings:', error);
+      console.error('AnomTube: Error loading settings:', error);
     }
     return defaultSettings;
   }

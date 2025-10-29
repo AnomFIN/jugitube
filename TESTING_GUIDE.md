@@ -1,4 +1,4 @@
-# JugiTube Settings and Features - Test Instructions
+# AnomTube Settings and Features - Test Instructions
 
 ## New Features Added
 
@@ -52,7 +52,7 @@ A new settings page has been added to customize AnomTube behavior.
 2. Enable "Auto-Click Skip Buttons"
 3. Navigate to YouTube and play a video with ads
 4. Observe that "Skip Ad" buttons are automatically clicked
-5. Check Console for: "JugiTube: Successfully clicked skip button"
+5. Check Console for: "AnomTube: Successfully clicked skip button"
 
 ### Test 4: Hide Lyric Popups
 1. Open settings page
@@ -60,7 +60,7 @@ A new settings page has been added to customize AnomTube behavior.
 3. Navigate to a YouTube music video
 4. Open any YouTube native lyric popup
 5. Verify it is automatically hidden
-6. Check Console for: "JugiTube: Hidden lyric popup element"
+6. Check Console for: "AnomTube: Hidden lyric popup element"
 
 ### Test 5: Allow Video Keep Ad Settings
 1. Open settings page
@@ -70,16 +70,16 @@ A new settings page has been added to customize AnomTube behavior.
 5. Verify:
    - Video remains visible (not blocked)
    - Ad controls still work (if enabled)
-   - Check Console for: "JugiTube: Video blocking is disabled"
+   - Check Console for: "AnomTube: Video blocking is disabled"
 
 ### Test 6: Module Initialization
 1. Navigate to YouTube
 2. Open DevTools Console
 3. Look for initialization messages:
-   - "JugiTube: Ad skipper initialized"
-   - "JugiTube: Lyric handler initialized"
-   - "JugiTube: Main module initializing"
-   - "JugiTube: All modules initialized successfully"
+   - "AnomTube: Ad skipper initialized"
+   - "AnomTube: Lyric handler initialized"
+   - "AnomTube: Main module initializing"
+   - "AnomTube: All modules initialized successfully"
 
 ### Test 7: Settings Persistence
 1. Set all checkboxes to various states
@@ -92,7 +92,7 @@ A new settings page has been added to customize AnomTube behavior.
 1. Enable "Auto-Click Skip Buttons"
 2. Navigate to YouTube with multiple ads
 3. Check Console for rate limit messages if more than 3 clicks/second attempted
-4. Verify: "JugiTube: Rate limit reached for ad skipping"
+4. Verify: "AnomTube: Rate limit reached for ad skipping"
 
 ## Debug Commands
 

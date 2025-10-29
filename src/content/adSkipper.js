@@ -53,7 +53,7 @@
     }
 
     if (!RATE_LIMIT.canClick()) {
-      console.log('JugiTube: Rate limit reached for ad skipping');
+      console.log('AnomTube: Rate limit reached for ad skipping');
       return false;
     }
 
@@ -72,10 +72,10 @@
         }));
       }
 
-      console.log('JugiTube: Successfully clicked skip button');
+      console.log('AnomTube: Successfully clicked skip button');
       return true;
     } catch (error) {
-      console.error('JugiTube: Error clicking skip button:', error);
+      console.error('AnomTube: Error clicking skip button:', error);
       return false;
     }
   }
@@ -142,7 +142,7 @@
 
   // Initialize ad skipper
   function init() {
-    console.log('JugiTube: Ad skipper initialized');
+    console.log('AnomTube: Ad skipper initialized');
     
     // Initial check
     setTimeout(trySkipAds, 1000);

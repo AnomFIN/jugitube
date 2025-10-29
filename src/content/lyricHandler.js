@@ -39,9 +39,9 @@
             // Hide instead of remove to avoid layout shifts
             element.style.display = 'none';
             
-            console.log('JugiTube: Hidden lyric popup element');
+            console.log('AnomTube: Hidden lyric popup element');
           } catch (error) {
-            console.error('JugiTube: Error hiding lyric popup:', error);
+            console.error('AnomTube: Error hiding lyric popup:', error);
           }
         }
       }
@@ -107,7 +107,7 @@
 
   // Initialize lyric handler
   function init() {
-    console.log('JugiTube: Lyric handler initialized');
+    console.log('AnomTube: Lyric handler initialized');
     
     // Initial check
     setTimeout(removeLyricPopups, 500);

@@ -1,4 +1,4 @@
-# Changelog - JugiTube Settings and Responsiveness Features
+# Changelog - AnomTube Settings and Responsiveness Features
 
 ## Version 2.1.0 - 2025-10-29
 
