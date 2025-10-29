@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JugiTube - Asetukset</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --primary-color: #6ca8ff;
+      --secondary-color: #b56cff;
+      --bg-color: #0a1220;
+      --surface-color: rgba(15, 25, 45, 0.85);
+      --border-color: rgba(255, 255, 255, 0.12);
+      --text-color: #f8faff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+      background: radial-gradient(circle at 15% 10%, rgba(108, 168, 255, 0.15), transparent 50%),
+        radial-gradient(circle at 85% 90%, rgba(181, 108, 255, 0.12), transparent 50%),
+        linear-gradient(160deg, #040810 0%, #0a1220 50%, #050913 100%);
+      color: var(--text-color);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      padding: 32px;
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .header h1 {
+      margin: 0 0 12px 0;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.75;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .section {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .section-title {
+      margin: 0 0 24px 0;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+      background: rgba(20, 30, 50, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      transition: background 0.3s ease;
+    }
+
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-row:hover {
+      background: rgba(25, 35, 60, 0.7);
+    }
+
+    .setting-info {
+      flex: 1;
+    }
+
+    .setting-label {
+      display: block;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      opacity: 0.75;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-flex;
+      width: 60px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: relative;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: block;
+    }
+
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      top: 50%;
+      left: 4px;
+      transform: translateY(-50%);
+      background: linear-gradient(145deg, #ffffff 0%, #dfe7ff 100%);
+      box-shadow: 0 8px 20px rgba(30, 40, 90, 0.4);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+      box-shadow: 0 8px 20px rgba(104, 156, 255, 0.45);
+    }
+
+    input:checked + .slider::before {
+      transform: translate(28px, -50%);
+      box-shadow: 0 10px 25px rgba(80, 212, 255, 0.55);
+    }
+
+    .status-message {
+      text-align: center;
+      padding: 16px 24px;
+      border-radius: 16px;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-top: 24px;
+      border: 1px solid transparent;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .status-message.visible {
+      opacity: 1;
+    }
+
+    .status-message.success {
+      background: rgba(80, 243, 192, 0.18);
+      border-color: rgba(80, 243, 192, 0.45);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding: 24px;
+      font-size: 12px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .footer strong {
+      color: var(--primary-color);
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 20px 16px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .section {
+        padding: 24px 20px;
+      }
+
+      .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .toggle-switch {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>JugiTube Asetukset</h1>
+      <p>AnomFIN Tools · Audio Only Tube Configuration</p>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Käyttöliittymä</h2>
+      
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="expandToolbar">Laajenna työkalurivi</label>
+          <p class="setting-description">Näytä YouTube:n sivupalkki täydessä leveydessä navigoinnin helpottamiseksi.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="expandToolbar">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="hideLyricPopup">Piilota lyriikka-popup</label>
+          <p class="setting-description">Estä lyriikka-ponnahdusikkunat näkymästä videon aikana.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hideLyricPopup">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Mainosten hallinta</h2>
+      
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="allowVideoKeepAdSettings">Salli video mainosasetusten kanssa</label>
+          <p class="setting-description">Jos päällä, älä estä videota, mutta käytä silti mainossuodatusta.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="allowVideoKeepAdSettings">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label class="setting-label" for="autoClickSkips">Klikkaa "Ohita" automaattisesti</label>
+          <p class="setting-description">Ohita mainokset automaattisesti heti kun "Ohita mainos" -painike ilmestyy.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="autoClickSkips">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="statusMessage" class="status-message">
+      Asetukset tallennettu!
+    </div>
+
+    <div class="footer">
+      Made by: <strong>Jugi @ AnomFIN · AnomTools</strong>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
