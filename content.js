@@ -140,12 +140,30 @@ class AnomTube {
         }
       }
     });
+
+    // Listen for jugitube settings changes
+    window.addEventListener('jugitube-settings-changed', () => {
+      console.log('JugiTube settings changed, reapplying activation logic');
+      if (this.isEnabled) {
+        this.deactivate();
+        this.activate();
+      }
+    });
   }
 
   activate() {
     console.log('AnomTube activated');
     this.attachNavigationListeners();
-    this.ensureVideoMonitoring();
+    
+    // Check if video blocking should be disabled based on jugitubeSettings
+    const shouldBlockVideo = !window.jugitubeSettings || !window.jugitubeSettings.allowVideoKeepAdSettings;
+    
+    if (shouldBlockVideo) {
+      this.ensureVideoMonitoring();
+    } else {
+      console.log('Video blocking disabled by jugitubeSettings.allowVideoKeepAdSettings');
+    }
+    
     this.ensureLyricsUi();
     this.scheduleLyricsRefresh(true);
     this.startLyricsSync();
