@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AnomTube Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --accent-primary: #6ca8ff;
+      --accent-secondary: #b56cff;
+      --base-surface: rgba(8, 14, 28, 0.78);
+      --base-border: rgba(255, 255, 255, 0.12);
+      --base-text: #f8faff;
+      font-family: 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: inherit;
+      background: radial-gradient(circle at 10% -10%, rgba(112, 173, 255, 0.32), transparent 55%),
+        radial-gradient(circle at 88% 12%, rgba(255, 132, 255, 0.18), transparent 58%),
+        linear-gradient(160deg, #040810 0%, #0b162d 60%, #050913 100%);
+      color: var(--base-text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0 0 10px 0;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.75;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .settings-section {
+      background: var(--base-surface);
+      border: 1px solid var(--base-border);
+      border-radius: 24px;
+      padding: 30px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(24px) saturate(165%);
+      box-shadow: 0 28px 85px rgba(3, 9, 26, 0.75);
+    }
+
+    .settings-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin: 0 0 20px 0;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+      border-radius: 16px;
+      background: rgba(11, 20, 44, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .setting-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .checkbox-container {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .checkbox-container input[type="checkbox"]:checked {
+      background: linear-gradient(120deg, var(--accent-primary), var(--accent-secondary));
+      border-color: var(--accent-primary);
+    }
+
+    .checkbox-container input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .setting-content {
+      flex: 1;
+    }
+
+    .setting-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin: 0 0 8px 0;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      opacity: 0.75;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .save-status {
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-top: 20px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .save-status.show {
+      opacity: 1;
+    }
+
+    .save-status.success {
+      background: rgba(80, 243, 192, 0.18);
+      border: 1px solid rgba(80, 243, 192, 0.45);
+      color: var(--base-text);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>AnomTube Settings</h1>
+      <p>Customize your AnomTube experience</p>
+    </div>
+
+    <div class="settings-section">
+      <h2>Interface Settings</h2>
+      
+      <div class="setting-item">
+        <div class="checkbox-container">
+          <input type="checkbox" id="expandToolbar">
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Expand Toolbar</div>
+          <div class="setting-description">Increase the minimum width of the YouTube toolbar for better visibility on larger screens.</div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="checkbox-container">
+          <input type="checkbox" id="hideLyricPopup">
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Hide Lyric Popup</div>
+          <div class="setting-description">Automatically remove YouTube's native lyric popup windows to avoid conflicts with AnomTube's lyrics display.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Ad Control Settings</h2>
+      
+      <div class="setting-item">
+        <div class="checkbox-container">
+          <input type="checkbox" id="allowVideoKeepAdSettings">
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Allow Video, Keep Ad Settings</div>
+          <div class="setting-description">Keep video visible while maintaining ad-skipping features. When enabled, video won't be blocked but ad controls remain active.</div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="checkbox-container">
+          <input type="checkbox" id="autoClickSkips">
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Auto-Click Skip Buttons</div>
+          <div class="setting-description">Automatically click "Skip Ad" buttons as soon as they appear on YouTube videos.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="save-status" id="saveStatus">Settings saved successfully!</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

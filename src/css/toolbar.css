@@ -1,0 +1,27 @@
+/* Toolbar responsiveness styles for AnomTube */
+:root {
+  --jugitube-toolbar-width: 220px;
+}
+
+/* Responsive toolbar adjustments */
+#masthead-container {
+  min-width: var(--jugitube-toolbar-width);
+}
+
+/* Expand toolbar when setting is enabled */
+[data-jugitube-expand-toolbar="true"] #masthead-container {
+  min-width: max(var(--jugitube-toolbar-width), 280px);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  :root {
+    --jugitube-toolbar-width: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --jugitube-toolbar-width: 160px;
+  }
+}

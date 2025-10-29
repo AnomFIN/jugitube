@@ -19,11 +19,18 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "js": [
+        "src/content/settings-apply.js",
+        "content.js",
+        "src/content/adSkipper.js",
+        "src/content/lyricHandler.js",
+        "src/content/main.js"
+      ],
+      "css": ["content.css", "src/css/toolbar.css"],
       "run_at": "document_idle"
     }
   ],
+  "options_page": "src/options/options.html",
   "action": {
     "default_popup": "popup.html",
     "default_title": "AnomTube Controls",
