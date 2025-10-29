@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const muteAdsToggle = document.getElementById('muteAdsToggle');
   const skipAdsToggle = document.getElementById('skipAdsToggle');
   const blockAdsToggle = document.getElementById('blockAdsToggle');
+  const autoClickSkipAdsToggle = document.getElementById('autoClickSkipAdsToggle');
+  const allowVideoKeepAdSettingsToggle = document.getElementById('allowVideoKeepAdSettingsToggle');
+  const hidePopupCompletelyToggle = document.getElementById('hidePopupCompletelyToggle');
+  const expandToolbarToggle = document.getElementById('expandToolbarToggle');
   const defaultLogoUrl = chrome.runtime.getURL('logo.png');
 
   function updateStatus(enabled) {
@@ -52,16 +56,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadState() {
-    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false }, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds']),
+    const [syncSettings, assets] = await Promise.all([
+      chrome.storage.sync.get([
+        'enabled', 
+        'muteAds', 
+        'skipAds', 
+        'blockAds',
+        'autoClickSkipAds',
+        'allowVideoKeepAdSettings',
+        'hidePopupCompletely',
+        'expandToolbar'
+      ]),
       chrome.storage.local.get(['customBackground', 'customLogo'])
     ]);
 
-    toggle.checked = !!enabled;
-    muteAdsToggle.checked = !!muteAds;
-    skipAdsToggle.checked = !!skipAds;
-    blockAdsToggle.checked = !!blockAds;
-    updateStatus(!!enabled);
+    toggle.checked = !!syncSettings.enabled;
+    muteAdsToggle.checked = !!syncSettings.muteAds;
+    skipAdsToggle.checked = !!syncSettings.skipAds;
+    blockAdsToggle.checked = !!syncSettings.blockAds;
+    autoClickSkipAdsToggle.checked = !!syncSettings.autoClickSkipAds;
+    allowVideoKeepAdSettingsToggle.checked = !!syncSettings.allowVideoKeepAdSettings;
+    hidePopupCompletelyToggle.checked = !!syncSettings.hidePopupCompletely;
+    expandToolbarToggle.checked = syncSettings.expandToolbar !== false; // Default true
+    updateStatus(!!syncSettings.enabled);
 
     updatePreview(backgroundPreview, assets.customBackground || null, {
       fallbackUrl: null,
@@ -132,30 +149,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function buildAdPreferencePayload() {
     return {
-      action: 'updateAdPreferences',
-      preferences: {
+      action: 'updateSettings',
+      settings: {
         muteAds: !!muteAdsToggle.checked,
         skipAds: !!skipAdsToggle.checked,
-        blockAds: !!blockAdsToggle.checked
+        blockAds: !!blockAdsToggle.checked,
+        autoClickSkipAds: !!autoClickSkipAdsToggle.checked,
+        allowVideoKeepAdSettings: !!allowVideoKeepAdSettingsToggle.checked,
+        hidePopupCompletely: !!hidePopupCompletelyToggle.checked,
+        expandToolbar: !!expandToolbarToggle.checked
       }
     };
   }
 
-  async function handleAdPreferenceChange(key, value) {
+  async function handleSettingChange(key, value) {
     await chrome.storage.sync.set({ [key]: value });
     await notifyActiveTab(buildAdPreferencePayload());
   }
 
   muteAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('muteAds', event.target.checked);
+    handleSettingChange('muteAds', event.target.checked);
   });
 
   skipAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('skipAds', event.target.checked);
+    handleSettingChange('skipAds', event.target.checked);
   });
 
   blockAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('blockAds', event.target.checked);
+    handleSettingChange('blockAds', event.target.checked);
+  });
+
+  autoClickSkipAdsToggle.addEventListener('change', (event) => {
+    handleSettingChange('autoClickSkipAds', event.target.checked);
+  });
+
+  allowVideoKeepAdSettingsToggle.addEventListener('change', (event) => {
+    handleSettingChange('allowVideoKeepAdSettings', event.target.checked);
+  });
+
+  hidePopupCompletelyToggle.addEventListener('change', (event) => {
+    handleSettingChange('hidePopupCompletely', event.target.checked);
+  });
+
+  expandToolbarToggle.addEventListener('change', (event) => {
+    handleSettingChange('expandToolbar', event.target.checked);
   });
 
   bindFileInput(backgroundInput, 'customBackground', backgroundPreview, {
@@ -213,6 +250,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (Object.prototype.hasOwnProperty.call(changes, 'blockAds')) {
         blockAdsToggle.checked = !!changes.blockAds.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'autoClickSkipAds')) {
+        autoClickSkipAdsToggle.checked = !!changes.autoClickSkipAds.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'allowVideoKeepAdSettings')) {
+        allowVideoKeepAdSettingsToggle.checked = !!changes.allowVideoKeepAdSettings.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'hidePopupCompletely')) {
+        hidePopupCompletelyToggle.checked = !!changes.hidePopupCompletely.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'expandToolbar')) {
+        expandToolbarToggle.checked = changes.expandToolbar.newValue !== false;
       }
     }
   });

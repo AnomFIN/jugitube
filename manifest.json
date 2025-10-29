@@ -19,7 +19,12 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "modules/settings.js",
+        "modules/adSkipper.js",
+        "modules/lyricHandler.js",
+        "content.js"
+      ],
       "css": ["content.css"],
       "run_at": "document_idle"
     }
