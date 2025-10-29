@@ -31,7 +31,7 @@ The popup now includes a new settings section with two new toggles:
 ┌─────────────────────────────────────────────────────────────┐
 │                                                               │
 │  [AnomFIN Logo]  AnomFIN Tools · AnomTube                    │
-│                  Audio only- tube · Powered by AnomTools     │
+│                  Audio-only tube · Powered by AnomTools      │
 │                                                               │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
