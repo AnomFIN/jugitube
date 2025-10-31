@@ -1,4 +1,8 @@
 // Content script for AnomTube extension
+// WeakMap to store stable button IDs
+const _buttonIds = new WeakMap();
+let _nextButtonId = 1;
+
 class AnomTube {
   constructor() {
     this.isEnabled = false;
@@ -233,7 +237,6 @@ class AnomTube {
       const newValue = Boolean(settings.hideLyrics);
       if (this.hideLyrics !== newValue) {
         this.hideLyrics = newValue;
-        changed = true;
 
         if (this.hideLyrics) {
           this.closeLyricsWindow();
@@ -247,7 +250,6 @@ class AnomTube {
       const newValue = Boolean(settings.allowVideo);
       if (this.allowVideo !== newValue) {
         this.allowVideo = newValue;
-        changed = true;
 
         if (this.isEnabled) {
           if (this.allowVideo) {
@@ -409,11 +411,11 @@ class AnomTube {
 
     for (const selector of skipSelectors) {
       const skipButtons = document.querySelectorAll(selector);
-      skipButtons.forEach((skipButton) => {
+      for (const skipButton of skipButtons) {
         if (this.tryClickAdButton(skipButton)) {
           return;
         }
-      });
+      }
     }
 
     const overlayCloseButtons = document.querySelectorAll(
@@ -486,9 +488,26 @@ class AnomTube {
 
   getButtonIdentifier(button) {
     try {
-      const rect = button.getBoundingClientRect();
-      return `${button.className}_${Math.round(rect.top)}_${Math.round(rect.left)}`;
+      // Try to use aria-label or textContent combined with className
+      const ariaLabel = button.getAttribute('aria-label');
+      const textContent = button.textContent?.trim();
+      const className = button.className || '';
+      
+      if (ariaLabel) {
+        return `${className}_aria_${ariaLabel}`;
+      }
+      
+      if (textContent) {
+        return `${className}_text_${textContent}`;
+      }
+      
+      // Fall back to WeakMap-based ID
+      if (!_buttonIds.has(button)) {
+        _buttonIds.set(button, _nextButtonId++);
+      }
+      return `${className}_id_${_buttonIds.get(button)}`;
     } catch (error) {
+      // Final fallback - use timestamp (unstable but functional)
       return `${button.className}_${Date.now()}`;
     }
   }
