@@ -485,7 +485,7 @@ class AnomTube {
 
   getButtonIdentifier(button) {
     try {
-      const aria = (button.getAttribute && button.getAttribute('aria-label')) || null;
+      const aria = button.getAttribute('aria-label') || null;
       const text = (button.textContent || '').trim();
       if (aria || text) {
         return `${button.className}_${aria || text}`;
