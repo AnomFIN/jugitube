@@ -482,6 +482,11 @@
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
+/* Hidden state for lyrics console when user preference is set */
+#anomfin-lyrics-console.anomfin-lyrics--hidden {
+  display: none !important;
+}
+
 #anomfin-lyrics-console .anomfin-lyrics__panel {
   position: relative;
   z-index: 0;
@@ -489,7 +494,7 @@
   display: flex;
   flex-direction: column;
   width: min(380px, calc(100vw - 48px));
-  min-width: 300px;
+  min-width: 220px;
   max-height: inherit;
   border-radius: 28px;
   overflow: hidden;
