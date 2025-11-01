@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AnomTube - Audio Only YouTube with Live Lyrics",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Blocks YouTube videos and plays only audio with karaoke-style live lyrics",
   "author": "jugi@AnomFIN",
   "permissions": [
@@ -19,7 +19,12 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["content.js"],
+      "js": [
+        "modules/settings.js",
+        "modules/adSkipper.js",
+        "modules/lyricHandler.js",
+        "content.js"
+      ],
       "css": ["content.css"],
       "run_at": "document_idle"
     }
