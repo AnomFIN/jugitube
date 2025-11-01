@@ -148,10 +148,13 @@ class AnomTube {
           }
         }
 
+        // Setting key constants to maintain consistency
+        const ALL_SETTINGS_KEYS = ['muteAds', 'skipAds', 'blockAds', 'autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar'];
+        
         const preferenceUpdates = {};
         let hasPreferenceUpdate = false;
 
-        for (const key of ['muteAds', 'skipAds', 'blockAds', 'autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar']) {
+        for (const key of ALL_SETTINGS_KEYS) {
           if (Object.prototype.hasOwnProperty.call(changes, key)) {
             preferenceUpdates[key] = Boolean(changes[key].newValue);
             hasPreferenceUpdate = true;
@@ -174,10 +177,14 @@ class AnomTube {
   }
 
   updateAllSettings(updates = {}) {
+    // Setting key constants to maintain DRY principle
+    const AD_SETTINGS_KEYS = ['muteAds', 'skipAds', 'blockAds'];
+    const UI_SETTINGS_KEYS = ['autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar'];
+    
     let changed = false;
 
     // Update ad preferences
-    for (const key of ['muteAds', 'skipAds', 'blockAds']) {
+    for (const key of AD_SETTINGS_KEYS) {
       if (updates[key] !== undefined) {
         const normalized = Boolean(updates[key]);
         if (this.adPreferences[key] !== normalized) {
@@ -188,7 +195,7 @@ class AnomTube {
     }
 
     // Update new settings
-    for (const key of ['autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar']) {
+    for (const key of UI_SETTINGS_KEYS) {
       if (updates[key] !== undefined) {
         const normalized = Boolean(updates[key]);
         if (this.settings[key] !== normalized) {
@@ -209,7 +216,8 @@ class AnomTube {
       });
     }
 
-    if (updates.autoClickSkipAds !== undefined && this.adSkipper.isActive) {
+    // Update adSkipper options regardless of active state
+    if (updates.autoClickSkipAds !== undefined) {
       this.adSkipper.updateOptions({
         autoClickSkipAds: this.settings.autoClickSkipAds
       });
@@ -220,8 +228,6 @@ class AnomTube {
         this.clearPlayerAds();
       }
       this.updateAdControlLoop();
-    } else if (!this.isEnabled) {
-      this.stopAdMonitoring();
     }
   }
 

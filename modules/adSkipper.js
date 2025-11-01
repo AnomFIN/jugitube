@@ -166,8 +166,8 @@ class AdSkipper {
     // Remove ad containers
     this.removeAdContainers();
 
-    // Fast forward if needed
-    if (isAdActive && this.videoElement) {
+    // Fast forward if needed - respect autoClickEnabled setting
+    if (this.autoClickEnabled && isAdActive && this.videoElement) {
       this.fastForwardAd();
     }
 
