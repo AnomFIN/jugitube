@@ -8,10 +8,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     muteAds: false,
     skipAds: false,
     blockAds: false,
-    autoClickSkipAds: false,
-    allowVideoKeepAdSettings: false,
-    hidePopupCompletely: false,
-    expandToolbar: true
+    hideLyrics: false,
+    allowVideo: false
   };
 
   if (details && details.reason === 'install') {

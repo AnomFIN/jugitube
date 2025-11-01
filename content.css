@@ -482,6 +482,11 @@
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
+/* Hidden state for lyrics console when user preference is set */
+#anomfin-lyrics-console.anomfin-lyrics--hidden {
+  display: none !important;
+}
+
 #anomfin-lyrics-console .anomfin-lyrics__panel {
   position: relative;
   z-index: 0;
