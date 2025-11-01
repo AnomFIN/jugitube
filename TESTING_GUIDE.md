@@ -1,158 +1,186 @@
-# AnomTube Settings and Features - Test Instructions
+# Testing Instructions for AnomTube Updates
 
-## New Features Added
+## Overview
+This document provides step-by-step instructions for testing the new features and improvements in AnomTube.
 
-### 1. Settings Page
-A new settings page has been added to customize AnomTube behavior.
+## Prerequisites
+1. Chrome or Edge browser
+2. Developer mode enabled in extensions
+3. Access to YouTube with various types of videos (with/without ads)
 
-**Access:** Right-click the extension icon → "Options" (or via chrome://extensions)
+## Installation
+1. Navigate to `chrome://extensions/` (or `edge://extensions/`)
+2. Enable "Developer mode" in the top right corner
+3. Click "Load unpacked" and select the repository folder
+4. Verify the extension appears in your extensions list
 
-### 2. Available Settings
+## Feature Testing
 
-#### Interface Settings
-- **Expand Toolbar**: Increases YouTube toolbar minimum width from 220px to 280px
-- **Hide Lyric Popup**: Automatically hides YouTube's native lyric popups to avoid conflicts
+### Test 1: Lyrics Console Width
+**Purpose**: Verify the lyrics console panel has appropriate width and is responsive
 
-#### Ad Control Settings
-- **Allow Video, Keep Ad Settings**: Keeps video visible while maintaining ad-skipping features
-- **Auto-Click Skip Buttons**: Automatically clicks "Skip Ad" buttons when they appear
+**Steps**:
+1. Navigate to any YouTube video (e.g., a music video)
+2. Click the AnomTube extension icon in your browser toolbar
+3. Toggle "Enable AnomTube" to activate the extension
+4. Observe the lyrics console in the bottom-right corner
 
-### 3. Content Scripts Architecture
+**Expected Result**:
+- The console should have a minimum width of 220px
+- The console should be clearly visible and not too narrow
+- Text and controls should be properly displayed without being cut off
+- On smaller screens, the console should adapt responsively
 
-#### Load Order (as defined in manifest.json):
-1. `settings-apply.js` - Loads settings and applies CSS variables
-2. `content.js` - Original AnomTube functionality
-3. `adSkipper.js` - Ad skipping with rate limiting
-4. `lyricHandler.js` - Lyric popup removal
-5. `main.js` - Module coordination and initialization
+**Pass Criteria**: ✅ Console is at least 220px wide and all content is visible
 
-## Testing Instructions
+---
 
-### Test 1: Settings Page
-1. Load the extension in Chrome
-2. Right-click extension icon → "Options"
-3. Verify all checkboxes are visible:
-   - Expand Toolbar
-   - Hide Lyric Popup
-   - Allow Video, Keep Ad Settings
-   - Auto-Click Skip Buttons
-4. Toggle each checkbox and verify "Settings saved successfully!" message appears
-5. Reload the page and verify settings are persisted
+### Test 2: Hide Lyrics Popup Setting
+**Purpose**: Verify the new setting to completely hide the lyrics popup
 
-### Test 2: Toolbar Width
-1. Open the settings page
-2. Enable "Expand Toolbar"
-3. Navigate to YouTube
-4. Open browser DevTools → Console
-5. Type: `getComputedStyle(document.documentElement).getPropertyValue('--jugitube-toolbar-width')`
-6. Should show `280px` when enabled, `220px` when disabled
+**Steps**:
+1. Open the AnomTube popup
+2. Scroll to the "Lisäasetukset" (Additional Settings) section
+3. Enable the "Piilota lyriikka-popup" (Hide lyrics popup) toggle
+4. Navigate to a YouTube video
+5. Enable AnomTube if not already enabled
 
-### Test 3: Auto-Skip Ads
-1. Open settings page
-2. Enable "Auto-Click Skip Buttons"
-3. Navigate to YouTube and play a video with ads
-4. Observe that "Skip Ad" buttons are automatically clicked
-5. Check Console for: "AnomTube: Successfully clicked skip button"
+**Expected Result**:
+- The lyrics console should NOT appear on the screen
+- The video placeholder (or video if allowVideo is enabled) should still work
+- No lyrics UI elements should be visible
 
-### Test 4: Hide Lyric Popups
-1. Open settings page
-2. Enable "Hide Lyric Popup"
-3. Navigate to a YouTube music video
-4. Open any YouTube native lyric popup
-5. Verify it is automatically hidden
-6. Check Console for: "AnomTube: Hidden lyric popup element"
+**Steps to Verify Reversal**:
+1. Open the AnomTube popup again
+2. Disable the "Piilota lyriikka-popup" toggle
+3. Refresh the YouTube page
 
-### Test 5: Allow Video Keep Ad Settings
-1. Open settings page
-2. Enable "Allow Video, Keep Ad Settings"
-3. Enable AnomTube in the popup
-4. Navigate to YouTube video
-5. Verify:
-   - Video remains visible (not blocked)
-   - Ad controls still work (if enabled)
-   - Check Console for: "AnomTube: Video blocking is disabled"
+**Expected Result**:
+- The lyrics console should now appear normally
 
-### Test 6: Module Initialization
-1. Navigate to YouTube
-2. Open DevTools Console
-3. Look for initialization messages:
-   - "AnomTube: Ad skipper initialized"
-   - "AnomTube: Lyric handler initialized"
-   - "AnomTube: Main module initializing"
-   - "AnomTube: All modules initialized successfully"
+**Pass Criteria**: ✅ Lyrics popup is hidden when setting is enabled, appears when disabled
 
-### Test 7: Settings Persistence
-1. Set all checkboxes to various states
-2. Close all YouTube tabs
-3. Close the extension options page
-4. Reopen options page
-5. Verify all settings are preserved
+---
 
-### Test 8: Rate Limiting
-1. Enable "Auto-Click Skip Buttons"
-2. Navigate to YouTube with multiple ads
-3. Check Console for rate limit messages if more than 3 clicks/second attempted
-4. Verify: "AnomTube: Rate limit reached for ad skipping"
+### Test 3: Improved Ad Skip Functionality
+**Purpose**: Verify the new MutationObserver-based ad skipper works reliably
 
-## Debug Commands
+**Steps**:
+1. Open the AnomTube popup
+2. Enable "Mainokset ASAP POIS" (Skip ads ASAP)
+3. Navigate to YouTube videos that typically show ads
+4. Watch for pre-roll ads or mid-roll ads
 
-### Check Settings in Console
-```javascript
-// Check current settings
-console.log(window.jugitubeSettings);
+**Expected Result**:
+- When the "Skip Ad" button appears, it should be clicked automatically within ~100-250ms
+- Ad overlay banners should be removed automatically
+- The system should not attempt to click the button more than 3 times per minute per button
+- No console errors should appear related to ad skipping
 
-// Check localStorage
-console.log(localStorage.getItem('jugitube_settings_v1'));
+**Testing Tips**:
+- Test with multiple videos to encounter different ad types
+- Observe the browser console for any debug messages (should see limited logs only)
+- Verify that regular video controls are not affected
 
-// Check modules status
-console.log(window.jugitubeModules);
+**Pass Criteria**: ✅ Skip buttons are clicked automatically, rate limiting works, no false positives
 
-// Check CSS variable
-console.log(getComputedStyle(document.documentElement).getPropertyValue('--jugitube-toolbar-width'));
-```
+---
 
-## Expected Behaviors
+### Test 4: Allow Video with Ad Controls
+**Purpose**: Verify the new setting that allows video display while keeping ad management active
 
-### When AnomTube is ENABLED
-- Video blocking active (unless "Allow Video, Keep Ad Settings" is checked)
-- Lyrics display works normally
-- Ad controls work based on popup settings (mute/skip/block)
-- Auto-skip works if "Auto-Click Skip Buttons" is enabled
+**Steps**:
+1. Open the AnomTube popup
+2. Scroll to "Lisäasetukset" (Additional Settings)
+3. Enable "Salli video + mainosten hallinta" (Allow video + ad management)
+4. Navigate to a YouTube video
+5. Ensure AnomTube is enabled
 
-### When AnomTube is DISABLED
-- No video blocking
-- Original YouTube experience
-- Ad skipper and lyric handler still work based on settings
+**Expected Result**:
+- The video should be visible (not replaced with placeholder)
+- Ad settings (mute, skip, block) should still function
+- If "Mainokset ASAP POIS" is enabled, ads should still be skipped
+- If "Mainosten ääni" is enabled, ads should still be muted
 
-### Settings Independence
-- Ad skipper works independently of AnomTube enable/disable state
-- Lyric handler works independently of AnomTube enable/disable state
-- Video blocking depends on both AnomTube state AND "Allow Video, Keep Ad Settings"
+**Steps to Verify Default Behavior**:
+1. Disable "Salli video + mainosten hallinta"
+2. Refresh the page
+
+**Expected Result**:
+- Video should now be hidden with the audio-only placeholder
+- Ad settings should still work
+
+**Pass Criteria**: ✅ Video visible when enabled, hidden when disabled, ad controls work in both modes
+
+---
+
+### Test 5: Settings Persistence
+**Purpose**: Verify that all settings are saved and restored correctly
+
+**Steps**:
+1. Open the AnomTube popup
+2. Enable various settings:
+   - Enable AnomTube
+   - Enable "Piilota lyriikka-popup"
+   - Enable "Salli video + mainosten hallinta"
+   - Enable "Mainokset ASAP POIS"
+3. Close the popup
+4. Navigate away from YouTube
+5. Navigate back to YouTube
+6. Open the AnomTube popup again
+
+**Expected Result**:
+- All settings should be in the same state as before
+- The settings should be reflected in the actual behavior on the page
+
+**Pass Criteria**: ✅ All settings persist across browser sessions and page navigations
+
+---
+
+### Test 6: Backwards Compatibility
+**Purpose**: Ensure existing functionality is not broken
+
+**Steps**:
+1. Test all original features with default settings:
+   - Audio-only mode (video blocking)
+   - Lyrics display and synchronization
+   - Manual lyrics retry
+   - Lyrics popup dragging
+   - Lyrics collapse/expand
+   - Custom logo and background upload
+   - Ad muting
+   - Ad blocking
+
+**Expected Result**:
+- All original features should work as before
+- No console errors
+- No visual glitches or UI problems
+
+**Pass Criteria**: ✅ All existing features work without issues
+
+---
+
+## Regression Testing
+
+### Edge Cases to Test:
+1. **Rapid setting changes**: Toggle settings on/off rapidly - should not cause crashes
+2. **Multiple tabs**: Open multiple YouTube tabs with different settings
+3. **Page navigation**: Test settings when navigating between different YouTube pages
+4. **Browser restart**: Close and reopen browser, verify settings persist
+5. **Extension reload**: Reload the extension, verify it initializes correctly
 
 ## Known Limitations
+- Ad skipper rate limiting is per-button per minute (max 3 attempts)
+- MutationObserver watches the `.html5-video-player` container or body
+- Some ads may not have skip buttons detectable by the current selectors
 
-1. **Rate Limiting**: Ad skipper is rate-limited to 3 clicks per second to prevent performance issues
-2. **MutationObserver**: Uses MutationObserver which may impact performance on slower devices
-3. **localStorage**: Settings stored in localStorage (not synced across browsers)
-4. **CSS Variable**: Toolbar width uses CSS custom properties (modern browsers only)
+## Reporting Issues
+If you encounter any issues during testing, please report:
+1. Browser version
+2. Steps to reproduce
+3. Expected vs actual behavior
+4. Console error messages (if any)
+5. Screenshots or screen recordings (if applicable)
 
-## Troubleshooting
-
-### Settings not saving
-- Check browser console for errors
-- Verify localStorage is enabled
-- Try clearing localStorage and reloading
-
-### Ad skipper not working
-- Verify "Auto-Click Skip Buttons" is enabled in settings
-- Check console for initialization messages
-- YouTube may have changed their HTML structure
-
-### Toolbar width not changing
-- Check if CSS variable is applied: `getComputedStyle(document.documentElement).getPropertyValue('--jugitube-toolbar-width')`
-- Verify toolbar.css is loaded in DevTools → Sources
-
-### Modules not initializing
-- Check console for error messages
-- Verify all content scripts are loaded in DevTools → Sources
-- Check manifest.json content_scripts order
+## Success Metrics
+All tests should pass with ✅ for the update to be considered successful.
