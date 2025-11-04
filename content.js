@@ -2146,7 +2146,9 @@ class AnomTube {
     bookmarksList.querySelectorAll('[data-bookmark-id]').forEach(el => {
       el.addEventListener('click', () => {
         const bookmarkId = el.dataset.bookmarkId;
-        this.playlistManager.jumpToBookmark(bookmarkId, this.videoElement);
+        if (this.videoElement) {
+          this.playlistManager.jumpToBookmark(bookmarkId, this.videoElement);
+        }
       });
 
       el.addEventListener('mouseenter', () => {

@@ -9,15 +9,25 @@ class ThemeManager {
   }
 
   async init() {
-    // Load saved theme
-    const result = await chrome.storage.sync.get([this.storageKey]);
-    this.currentTheme = result[this.storageKey] || 'dark';
-    this.applyTheme(this.currentTheme);
+    try {
+      // Load saved theme
+      const result = await chrome.storage.sync.get([this.storageKey]);
+      this.currentTheme = result[this.storageKey] || 'dark';
+      this.applyTheme(this.currentTheme);
+    } catch (error) {
+      console.warn('Failed to load theme from storage, using default:', error);
+      this.currentTheme = 'dark';
+      this.applyTheme(this.currentTheme);
+    }
   }
 
   async toggleTheme() {
     this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-    await this.saveTheme();
+    try {
+      await this.saveTheme();
+    } catch (error) {
+      console.warn('Failed to save theme preference:', error);
+    }
     this.applyTheme(this.currentTheme);
     return this.currentTheme;
   }

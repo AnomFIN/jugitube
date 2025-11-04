@@ -218,7 +218,7 @@ class DownloadManager {
 
     // Get video title for filename
     const videoTitle = document.querySelector('h1.title yt-formatted-string')?.textContent || 'video';
-    const sanitizedTitle = videoTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const sanitizedTitle = videoTitle.replace(/[<>:"/\\|?*]/g, '_').trim();
 
     downloadBtn.disabled = true;
     downloadBtn.textContent = 'Preparing...';
