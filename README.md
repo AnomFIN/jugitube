@@ -1,16 +1,28 @@
 # AnomTube - Audio Only YouTube with Live Lyrics
 
-A browser extension that blocks YouTube videos and plays only the audio instead, featuring karaoke-style live lyrics in a popup window.
+A feature-rich browser extension that blocks YouTube videos and plays only the audio instead, featuring karaoke-style live lyrics, keyboard shortcuts, themes, playlists, and more.
 
 ## Features
 
+### Core Features
 🎵 **Audio-Only Playback**: Blocks video content while preserving audio playback  
 🎤 **Live Karaoke Lyrics**: Displays synchronized lyrics in a popup window  
 🚫 **Advanced Ad Management**: Automatic ad muting, skipping, and blocking with MutationObserver  
 ⚙️ **Flexible Settings**: Hide lyrics, show video with ad controls, and more  
 📱 **Toggle On/Off**: Easy-to-use switch to enable/disable the extension  
 🎨 **Beautiful UI**: Modern, gradient-based design with smooth animations  
-📐 **Responsive Design**: Optimized lyrics console width (220px minimum) for all screen sizes  
+📐 **Responsive Design**: Optimized for all screen sizes from mobile to desktop  
+
+### New Features ✨
+
+⌨️ **Keyboard Shortcuts**: 20+ hotkeys for quick control (Space/K=play, T=theme, P=PiP, B=bookmark)  
+🌓 **Theme System**: Dark/light theme toggle with smooth transitions  
+🖼️ **Picture-in-Picture**: Float videos while multitasking  
+📑 **Playlists & Bookmarks**: Create custom playlists and timestamp bookmarks  
+📱 **Enhanced Responsive**: Breakpoints for all devices with accessibility support  
+⬇️ **Download Feature**: Optional backend for video/audio downloads (yt-dlp + ffmpeg)  
+
+> 📖 **Full Feature Documentation**: See [FEATURES.md](FEATURES.md) for complete guide
 
 ## Installation
 
@@ -32,6 +44,23 @@ A browser extension that blocks YouTube videos and plays only the audio instead,
    - **Allow Video + Ad Controls**: Show video while keeping ad management active
    - **Ad Management**: Mute, skip, or block ads automatically
 7. Enjoy your personalized YouTube experience!
+
+## Keyboard Shortcuts
+
+Quick reference for the most common hotkeys:
+
+| Key | Action | Key | Action |
+|-----|--------|-----|--------|
+| **Space** / **K** | Play/Pause | **T** | Toggle Theme |
+| **←** / **J** | Seek -5s | **P** | Toggle PiP |
+| **→** / **L** | Seek +5s | **B** | Add Bookmark |
+| **↑** | Volume Up | **M** | Mute |
+| **↓** | Volume Down | **F** | Fullscreen |
+| **0-9** | Seek to % | **D** | Download* |
+
+*Requires optional backend setup. See [backend/README.md](backend/README.md)
+
+> 📖 **Complete Hotkey Guide**: See [FEATURES.md](FEATURES.md#keyboard-shortcuts-hotkeys)
 
 ## Advanced Settings
 
