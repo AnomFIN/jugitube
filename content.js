@@ -60,6 +60,8 @@ class AnomTube {
     this.adSkipperObserver = null;
     this.adSkipAttempts = new Map();
     this.lastAdSkipAttempt = 0;
+    this.buttonIds = new WeakMap();
+    this.nextButtonId = 1;
 
     // New modular components
     this.settingsManager = new SettingsManager();
@@ -319,7 +321,6 @@ class AnomTube {
       const newValue = Boolean(settings.hideLyrics);
       if (this.hideLyrics !== newValue) {
         this.hideLyrics = newValue;
-        changed = true;
 
         if (this.hideLyrics) {
           this.closeLyricsWindow();
@@ -333,7 +334,6 @@ class AnomTube {
       const newValue = Boolean(settings.allowVideo);
       if (this.allowVideo !== newValue) {
         this.allowVideo = newValue;
-        changed = true;
 
         if (this.isEnabled) {
           if (this.allowVideo) {
@@ -507,11 +507,11 @@ class AnomTube {
 
     for (const selector of skipSelectors) {
       const skipButtons = document.querySelectorAll(selector);
-      skipButtons.forEach((skipButton) => {
+      for (const skipButton of skipButtons) {
         if (this.tryClickAdButton(skipButton)) {
           return;
         }
-      });
+      }
     }
 
     const overlayCloseButtons = document.querySelectorAll(
@@ -584,9 +584,17 @@ class AnomTube {
 
   getButtonIdentifier(button) {
     try {
-      const rect = button.getBoundingClientRect();
-      return `${button.className}_${Math.round(rect.top)}_${Math.round(rect.left)}`;
+      const aria = button.getAttribute('aria-label');
+      const text = (button.textContent || '').trim();
+      if (aria || text) {
+        return `${button.className}_${aria || text}`;
+      }
+      if (!this.buttonIds.has(button)) {
+        this.buttonIds.set(button, `el_${this.nextButtonId++}`);
+      }
+      return `${button.className}_${this.buttonIds.get(button)}`;
     } catch (error) {
+      // Fallback identifier using timestamp when attribute access fails
       return `${button.className}_${Date.now()}`;
     }
   }
