@@ -1,0 +1,185 @@
+/* Responsive CSS for AnomTube Extension */
+/* Ensures UI elements scale properly across different screen sizes */
+
+/* Responsive media queries for popup */
+@media (max-width: 380px) {
+  body {
+    width: 100vw;
+    padding: 12px;
+  }
+
+  .popup-shell {
+    padding: 20px 16px 24px;
+  }
+
+  .brand-lockup {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .feature-list {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive adjustments for lyrics console */
+@media (max-width: 768px) {
+  #anomtube-lyrics-console {
+    width: 90% !important;
+    max-width: 400px !important;
+    font-size: 14px !important;
+  }
+
+  .lyrics-line {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #anomtube-lyrics-console {
+    width: 95% !important;
+    max-width: 100% !important;
+    left: 2.5% !important;
+    right: 2.5% !important;
+    padding: 15px !important;
+    font-size: 13px !important;
+  }
+
+  .lyrics-title {
+    font-size: 16px !important;
+  }
+
+  .lyrics-line {
+    font-size: 13px !important;
+  }
+}
+
+/* Responsive download panel */
+@media (max-width: 768px) {
+  #anomtube-download-panel {
+    width: 90% !important;
+    max-width: 350px !important;
+    left: 5% !important;
+    right: 5% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #anomtube-download-panel {
+    width: 95% !important;
+    max-width: 100% !important;
+    left: 2.5% !important;
+    right: 2.5% !important;
+    top: 60px !important;
+  }
+}
+
+/* Responsive playlist manager */
+@media (max-width: 768px) {
+  #anomtube-playlist-manager {
+    width: 90% !important;
+    max-width: 350px !important;
+    left: 5% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #anomtube-playlist-manager {
+    width: 95% !important;
+    max-width: 100% !important;
+    left: 2.5% !important;
+    right: 2.5% !important;
+    top: 60px !important;
+  }
+}
+
+/* Ensure buttons are touch-friendly on mobile */
+@media (max-width: 768px) {
+  button, .asset-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .toggle-switch {
+    width: 56px;
+    height: 30px;
+  }
+}
+
+/* Responsive text sizing */
+@media (max-width: 480px) {
+  .section__title,
+  .control-title,
+  .asset-title {
+    font-size: 14px !important;
+  }
+
+  .section__subtitle,
+  .control-subtitle,
+  .asset-subtitle {
+    font-size: 11px !important;
+  }
+
+  .toggle-label,
+  .control-card-title {
+    font-size: 12px !important;
+  }
+
+  .toggle-description,
+  .control-card-description {
+    font-size: 11px !important;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+  #anomtube-lyrics-console,
+  #anomtube-download-panel,
+  #anomtube-playlist-manager {
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  #anomtube-lyrics-console,
+  #anomtube-download-panel,
+  #anomtube-playlist-manager {
+    border-width: 0.5px;
+  }
+}
+
+/* Accessibility: Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode preference (system) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --anomtube-bg-primary: #ffffff;
+    --anomtube-bg-secondary: #f5f7fa;
+    --anomtube-text-primary: #1a202c;
+    --anomtube-text-secondary: #4a5568;
+  }
+}
+
+/* Print styles */
+@media print {
+  #anomtube-lyrics-console,
+  #anomtube-download-panel,
+  #anomtube-playlist-manager {
+    display: none !important;
+  }
+}
