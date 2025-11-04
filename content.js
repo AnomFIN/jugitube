@@ -63,11 +63,21 @@ class AnomTube {
     this.buttonIds = new WeakMap();
     this.nextButtonId = 1;
 
+    // New modular components
+    this.settingsManager = new SettingsManager();
+    this.adSkipper = new AdSkipper();
+    this.lyricHandler = new LyricHandler();
+    this.settings = {
+      autoClickSkipAds: false,
+      allowVideoKeepAdSettings: false,
+      hidePopupCompletely: false,
+      expandToolbar: true
+    };
+
     this.init();
   }
 
   async init() {
-    // Check if extension is enabled
     const [syncState, assets] = await Promise.all([
       chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo']),
       chrome.storage.local.get(['customBackground', 'customLogo', 'lyricsConsolePosition'])
@@ -136,10 +146,13 @@ class AnomTube {
           }
         }
 
+        // Setting key constants to maintain consistency
+        const ALL_SETTINGS_KEYS = ['muteAds', 'skipAds', 'blockAds', 'autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar'];
+        
         const preferenceUpdates = {};
         let hasPreferenceUpdate = false;
 
-        for (const key of ['muteAds', 'skipAds', 'blockAds']) {
+        for (const key of ALL_SETTINGS_KEYS) {
           if (Object.prototype.hasOwnProperty.call(changes, key)) {
             preferenceUpdates[key] = Boolean(changes[key].newValue);
             hasPreferenceUpdate = true;
@@ -147,7 +160,7 @@ class AnomTube {
         }
 
         if (hasPreferenceUpdate) {
-          this.updateAdPreferences(preferenceUpdates);
+          this.updateAllSettings(preferenceUpdates);
         }
 
         const settingsUpdates = {};
@@ -165,6 +178,78 @@ class AnomTube {
         }
       }
     });
+
+    // Listen for jugitube settings changes
+    window.addEventListener('jugitube-settings-changed', () => {
+      console.log('JugiTube settings changed, reapplying activation logic');
+      if (this.isEnabled) {
+        this.deactivate();
+        this.activate();
+      }
+    });
+  }
+
+  applyToolbarExpansion() {
+    if (this.settings.expandToolbar) {
+      document.body.setAttribute('data-anomtube-expand-toolbar', 'true');
+    } else {
+      document.body.setAttribute('data-anomtube-expand-toolbar', 'false');
+    }
+  }
+
+  updateAllSettings(updates = {}) {
+    // Setting key constants to maintain DRY principle
+    const AD_SETTINGS_KEYS = ['muteAds', 'skipAds', 'blockAds'];
+    const UI_SETTINGS_KEYS = ['autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar'];
+    
+    let changed = false;
+
+    // Update ad preferences
+    for (const key of AD_SETTINGS_KEYS) {
+      if (updates[key] !== undefined) {
+        const normalized = Boolean(updates[key]);
+        if (this.adPreferences[key] !== normalized) {
+          this.adPreferences[key] = normalized;
+          changed = true;
+        }
+      }
+    }
+
+    // Update new settings
+    for (const key of UI_SETTINGS_KEYS) {
+      if (updates[key] !== undefined) {
+        const normalized = Boolean(updates[key]);
+        if (this.settings[key] !== normalized) {
+          this.settings[key] = normalized;
+          changed = true;
+        }
+      }
+    }
+
+    // Apply changes
+    if (updates.expandToolbar !== undefined) {
+      this.applyToolbarExpansion();
+    }
+
+    if (updates.hidePopupCompletely !== undefined) {
+      this.lyricHandler.updateSettings({
+        hidePopupCompletely: this.settings.hidePopupCompletely
+      });
+    }
+
+    // Update adSkipper options regardless of active state
+    if (updates.autoClickSkipAds !== undefined) {
+      this.adSkipper.updateOptions({
+        autoClickSkipAds: this.settings.autoClickSkipAds
+      });
+    }
+
+    if (changed) {
+      if (this.adPreferences.blockAds) {
+        this.clearPlayerAds();
+      }
+      this.updateAdControlLoop();
+    }
   }
 
   activate() {
@@ -181,6 +266,7 @@ class AnomTube {
     if (this.adPreferences.blockAds) {
       this.clearPlayerAds();
     }
+    
     this.updateAdControlLoop();
   }
 
@@ -290,6 +376,13 @@ class AnomTube {
       return;
     }
 
+    // Start the adSkipper module if autoClickSkipAds is enabled
+    if (this.settings.autoClickSkipAds) {
+      this.adSkipper.start({
+        autoClickSkipAds: true
+      });
+    }
+
     this.adMonitorInterval = setInterval(() => {
       try {
         this.processAdControls();
@@ -303,6 +396,11 @@ class AnomTube {
     if (this.adMonitorInterval) {
       clearInterval(this.adMonitorInterval);
       this.adMonitorInterval = null;
+    }
+
+    // Stop adSkipper module
+    if (this.adSkipper) {
+      this.adSkipper.stop();
     }
 
     if (this.wasMutedByAdControl) {
@@ -653,9 +751,11 @@ class AnomTube {
       if (changed) {
         this.startLyricsSync();
         this.scheduleLyricsRefresh();
-      } else if (hasVideo && this.videoElement && this.videoElement.style.display !== 'none') {
-        // Ensure the video stays hidden even if YouTube tweaks the DOM.
-        this.videoElement.style.display = 'none';
+      } else if (hasVideo && this.videoElement && !this.settings.allowVideoKeepAdSettings) {
+        // Only hide video if allowVideoKeepAdSettings is false
+        if (this.videoElement.style.display !== 'none') {
+          this.videoElement.style.display = 'none';
+        }
       }
     };
 
@@ -723,7 +823,10 @@ class AnomTube {
       return;
     }
 
-    video.style.display = 'none';
+    // Only hide video if allowVideoKeepAdSettings is false
+    if (!this.settings.allowVideoKeepAdSettings) {
+      video.style.display = 'none';
+    }
 
     const videoContainer = video.parentElement;
     if (!videoContainer) {

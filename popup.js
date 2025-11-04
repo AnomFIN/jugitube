@@ -136,16 +136,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function buildAdPreferencePayload() {
     return {
-      action: 'updateAdPreferences',
-      preferences: {
+      action: 'updateSettings',
+      settings: {
         muteAds: !!muteAdsToggle.checked,
         skipAds: !!skipAdsToggle.checked,
-        blockAds: !!blockAdsToggle.checked
+        blockAds: !!blockAdsToggle.checked,
+        autoClickSkipAds: !!autoClickSkipAdsToggle.checked,
+        allowVideoKeepAdSettings: !!allowVideoKeepAdSettingsToggle.checked,
+        hidePopupCompletely: !!hidePopupCompletelyToggle.checked,
+        expandToolbar: !!expandToolbarToggle.checked
       }
     };
   }
 
-  async function handleAdPreferenceChange(key, value) {
+  async function handleSettingChange(key, value) {
     await chrome.storage.sync.set({ [key]: value });
     await notifyActiveTab(buildAdPreferencePayload());
   }
@@ -159,15 +163,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   muteAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('muteAds', event.target.checked);
+    handleSettingChange('muteAds', event.target.checked);
   });
 
   skipAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('skipAds', event.target.checked);
+    handleSettingChange('skipAds', event.target.checked);
   });
 
   blockAdsToggle.addEventListener('change', (event) => {
-    handleAdPreferenceChange('blockAds', event.target.checked);
+    handleSettingChange('blockAds', event.target.checked);
+  });
+
+  autoClickSkipAdsToggle.addEventListener('change', (event) => {
+    handleSettingChange('autoClickSkipAds', event.target.checked);
+  });
+
+  allowVideoKeepAdSettingsToggle.addEventListener('change', (event) => {
+    handleSettingChange('allowVideoKeepAdSettings', event.target.checked);
+  });
+
+  hidePopupCompletelyToggle.addEventListener('change', (event) => {
+    handleSettingChange('hidePopupCompletely', event.target.checked);
+  });
+
+  expandToolbarToggle.addEventListener('change', (event) => {
+    handleSettingChange('expandToolbar', event.target.checked);
   });
 
   hideLyricsToggle.addEventListener('change', (event) => {
