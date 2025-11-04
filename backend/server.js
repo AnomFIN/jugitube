@@ -11,6 +11,12 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configuration constants
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_CONCURRENT_DOWNLOADS = 3;
+
 // Middleware
 app.use(cors({
   origin: '*', // In production, set this to your extension's origin
@@ -21,8 +27,8 @@ app.use(express.json());
 
 // Rate limiting: max 10 downloads per 15 minutes per IP
 const downloadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX_REQUESTS,
   message: { error: 'Too many download requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -30,7 +36,7 @@ const downloadLimiter = rateLimit({
 
 // Simple in-memory queue for download requests
 class DownloadQueue {
-  constructor(maxConcurrent = 3) {
+  constructor(maxConcurrent = MAX_CONCURRENT_DOWNLOADS) {
     this.queue = [];
     this.active = 0;
     this.maxConcurrent = maxConcurrent;
@@ -158,7 +164,7 @@ app.post('/api/download', downloadLimiter, async (req, res) => {
           reject(error);
         });
 
-        // Set timeout (10 minutes)
+        // Set timeout
         const timeout = setTimeout(() => {
           console.error('Download timeout');
           ytdlp.kill();
@@ -166,7 +172,7 @@ app.post('/api/download', downloadLimiter, async (req, res) => {
             res.status(504).json({ error: 'Download timeout' });
           }
           reject(new Error('Download timeout'));
-        }, 10 * 60 * 1000);
+        }, DOWNLOAD_TIMEOUT_MS);
 
         // Clear timeout on completion
         ytdlp.on('close', () => clearTimeout(timeout));

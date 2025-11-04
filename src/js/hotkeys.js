@@ -5,6 +5,13 @@ class HotkeyManager {
   constructor() {
     this.enabled = true;
     this.videoElement = null;
+    
+    // Fullscreen selector constants
+    this.PLAYER_CONTAINER_SELECTORS = [
+      '.html5-video-player',
+      'video'
+    ];
+    
     this.keyMap = {
       ' ': 'playPause',           // Space: play/pause
       'k': 'playPause',           // K: play/pause (YouTube standard)
@@ -277,7 +284,15 @@ class HotkeyManager {
    * Toggle fullscreen
    */
   toggleFullscreen() {
-    const playerContainer = document.querySelector('.html5-video-player') || document.querySelector('video');
+    let playerContainer = null;
+    
+    // Try each selector until we find a match
+    for (const selector of this.PLAYER_CONTAINER_SELECTORS) {
+      playerContainer = document.querySelector(selector);
+      if (playerContainer) {
+        break;
+      }
+    }
     
     if (!playerContainer) {
       return;

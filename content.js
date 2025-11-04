@@ -78,6 +78,10 @@ class AnomTube {
     this.pipManager = typeof PipManager !== 'undefined' ? new PipManager() : null;
     this.playlistManager = typeof PlaylistManager !== 'undefined' ? new PlaylistManager() : null;
 
+    // Notification queue to prevent overlapping notifications
+    this.notificationQueue = [];
+    this.activeNotification = null;
+
     this.init();
   }
 
@@ -313,11 +317,30 @@ class AnomTube {
   }
 
   /**
-   * Show temporary notification
+   * Show temporary notification with queue management
    * @param {string} message - Notification message
    * @param {number} duration - Duration in milliseconds
    */
   showNotification(message, duration = 2000) {
+    // Add to queue
+    this.notificationQueue.push({ message, duration });
+    
+    // Process queue if no active notification
+    if (!this.activeNotification) {
+      this.processNotificationQueue();
+    }
+  }
+
+  /**
+   * Process notification queue
+   */
+  processNotificationQueue() {
+    if (this.notificationQueue.length === 0) {
+      return;
+    }
+
+    const { message, duration } = this.notificationQueue.shift();
+
     // Create notification element
     const notification = document.createElement('div');
     notification.className = 'anomtube-notification';
@@ -341,6 +364,7 @@ class AnomTube {
       transition: opacity 0.3s ease;
     `;
 
+    this.activeNotification = notification;
     document.body.appendChild(notification);
 
     // Fade in
@@ -353,6 +377,10 @@ class AnomTube {
       notification.style.opacity = '0';
       setTimeout(() => {
         notification.remove();
+        this.activeNotification = null;
+        
+        // Process next notification in queue
+        this.processNotificationQueue();
       }, 300);
     }, duration);
   }

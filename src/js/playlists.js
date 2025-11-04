@@ -64,7 +64,7 @@ class PlaylistManager {
    */
   async createPlaylist(name, description = '') {
     const playlist = {
-      id: `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `playlist_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       name: name || 'Untitled Playlist',
       description,
       videos: [],
@@ -229,7 +229,7 @@ class PlaylistManager {
    */
   async addBookmark(bookmark) {
     const bookmarkEntry = {
-      id: `bookmark_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `bookmark_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       videoId: bookmark.videoId,
       title: bookmark.title || 'Unknown Title',
       artist: bookmark.artist || 'Unknown Artist',
