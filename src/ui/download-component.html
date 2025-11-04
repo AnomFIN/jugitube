@@ -1,0 +1,36 @@
+<!-- Simple download UI component -->
+<div class="download-component" style="display:flex;gap:8px;align-items:center;">
+  <input id="download-url" placeholder="Video URL" style="flex:1;padding:6px" />
+  <select id="download-format" title="Format">
+    <option value="mp4">MP4</option>
+    <option value="mp3">MP3</option>
+  </select>
+  <select id="download-quality" title="Quality">
+    <option value="low">Low</option>
+    <option value="medium" selected>Medium</option>
+    <option value="high">High</option>
+  </select>
+  <button id="download-start">Lataa</button>
+  <div id="download-status" aria-live="polite" style="min-width:180px"></div>
+</div>
+
+<script>
+document.getElementById('download-start').addEventListener('click', async () => {
+  const url = document.getElementById('download-url').value.trim();
+  const format = document.getElementById('download-format').value;
+  const quality = document.getElementById('download-quality').value;
+  const status = document.getElementById('download-status');
+  if (!url) { status.textContent = 'Anna URL'; return; }
+  status.textContent = 'Käynnistetään...';
+  try {
+    const filename = await JugitubeDownload.start({ url, format, quality, title: 'jugitube' });
+    status.textContent = 'Lataus valmis: ' + filename;
+  } catch (e) {
+    status.textContent = 'Virhe: ' + (e.message || e);
+  }
+});
+window.addEventListener('jugitube-download-progress', (e) => {
+  // Show bytes received. For better UX server should set Content-Length to calculate %
+  // Example: console.log('progress', e.detail.received);
+});
+</script>
