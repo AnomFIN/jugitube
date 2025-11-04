@@ -23,9 +23,17 @@
         "modules/settings.js",
         "modules/adSkipper.js",
         "modules/lyricHandler.js",
+        "src/js/themes.js",
+        "src/js/hotkeys.js",
+        "src/js/pip.js",
+        "src/js/playlists.js",
         "content.js"
       ],
-      "css": ["content.css"],
+      "css": [
+        "content.css",
+        "src/css/responsive.css",
+        "src/css/themes.css"
+      ],
       "run_at": "document_idle"
     }
   ],

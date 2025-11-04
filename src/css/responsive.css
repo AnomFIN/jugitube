@@ -1,0 +1,272 @@
+/* Responsive Design Enhancements for AnomTube Extension */
+
+/* Mobile-first responsive breakpoints */
+
+/* Small mobile devices (< 400px) */
+@media (max-width: 399px) {
+  #anomfin-lyrics-console {
+    width: calc(100vw - 16px);
+    right: 8px;
+    bottom: 8px;
+  }
+
+  #anomfin-lyrics-console .anomfin-lyrics__panel {
+    min-width: 160px;
+    border-radius: 20px;
+  }
+
+  .anomfin-lyrics__branding {
+    padding: 14px 16px 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .anomfin-lyrics__logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .anomfin-lyrics__brand-title {
+    font-size: 15px;
+  }
+
+  .anomfin-lyrics__brand-subtitle {
+    font-size: 10px;
+  }
+
+  .anomfin-lyrics__controls {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .anomfin-lyrics__btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  .anomfin-lyrics__song {
+    font-size: 18px;
+  }
+
+  .anomfin-lyrics__lines {
+    max-height: min(250px, calc(100vh - 200px));
+    padding: 0 16px 8px;
+  }
+
+  .anomfin-lyrics__line {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  #anomtube-placeholder {
+    border-radius: 16px;
+  }
+
+  .anomtube-audio-only {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .anomtube-title {
+    font-size: 22px;
+  }
+
+  .anomtube-subtitle,
+  .anomtube-note {
+    font-size: 13px;
+  }
+
+  .anomtube-logo-img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .anomtube-feature {
+    padding: 14px;
+  }
+
+  .anomtube-feature__title {
+    font-size: 12px;
+  }
+
+  .anomtube-feature__description {
+    font-size: 12px;
+  }
+}
+
+/* Tablet portrait (400px - 768px) */
+@media (min-width: 400px) and (max-width: 768px) {
+  #anomfin-lyrics-console {
+    width: min(360px, calc(100vw - 32px));
+  }
+
+  .anomfin-lyrics__lines {
+    max-height: min(320px, calc(100vh - 200px));
+  }
+
+  .anomtube-audio-only {
+    padding: 28px 24px;
+  }
+
+  .anomtube-feature-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Tablet landscape (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #anomfin-lyrics-console {
+    width: min(380px, calc(100vw - 48px));
+  }
+
+  .anomtube-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .anomtube-audio-only {
+    max-width: min(580px, 94%);
+  }
+}
+
+/* Desktop (1025px - 1440px) */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  #anomfin-lyrics-console {
+    width: min(400px, calc(100vw - 64px));
+  }
+
+  .anomfin-lyrics__lines {
+    max-height: 400px;
+  }
+
+  .anomtube-audio-only {
+    max-width: min(640px, 92%);
+  }
+}
+
+/* Large desktop (> 1440px) */
+@media (min-width: 1441px) {
+  #anomfin-lyrics-console {
+    width: min(420px, calc(100vw - 80px));
+  }
+
+  .anomfin-lyrics__lines {
+    max-height: 450px;
+  }
+
+  .anomtube-audio-only {
+    max-width: min(680px, 90%);
+  }
+}
+
+/* Landscape mode adjustments for mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+  #anomfin-lyrics-console {
+    max-height: calc(100vh - 32px);
+    bottom: 16px;
+  }
+
+  .anomfin-lyrics__lines {
+    max-height: min(200px, calc(100vh - 160px));
+  }
+
+  .anomtube-audio-only {
+    padding: 20px 24px;
+    gap: 14px;
+  }
+
+  .anomtube-feature-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .anomtube-feature {
+    padding: 12px;
+  }
+
+  .anomtube-title {
+    font-size: 24px;
+  }
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .anomfin-lyrics__logo,
+  .anomtube-logo-img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .anomfin-lyrics__line {
+    transition: none;
+  }
+
+  .anomtube-backdrop__grid,
+  .anomtube-backdrop__logo {
+    animation: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  #anomfin-lyrics-console,
+  #anomtube-placeholder {
+    display: none !important;
+  }
+}
+
+/* Touchscreen optimizations */
+@media (pointer: coarse) {
+  .anomfin-lyrics__btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 20px;
+  }
+
+  .anomfin-lyrics__line {
+    padding: 14px 16px;
+    font-size: 17px;
+  }
+
+  .anomtube-feature {
+    padding: 20px;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 2px;
+}
+
+/* Ensure contrast for accessibility */
+@media (prefers-contrast: high) {
+  .anomfin-lyrics__panel {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .anomfin-lyrics__line {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .anomfin-lyrics__line--current {
+    border: 2px solid rgba(96, 165, 250, 1);
+  }
+
+  .anomtube-audio-only {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+}
