@@ -59,6 +59,26 @@ npm install
 
 ## Usage
 
+### Environment Variables
+
+Configure the server using environment variables:
+
+- `PORT`: Server port (default: 3000)
+- `CORS_ORIGIN`: Allowed CORS origin (default: http://localhost:3000)
+
+**Security Note**: In production, always set `CORS_ORIGIN` to your extension's origin:
+
+```bash
+# For Chrome extension
+export CORS_ORIGIN="chrome-extension://YOUR_EXTENSION_ID"
+
+# For multiple origins (comma-separated)
+export CORS_ORIGIN="chrome-extension://ID1,chrome-extension://ID2"
+
+# For local development
+export CORS_ORIGIN="http://localhost:3000"
+```
+
 ### Development Mode
 
 ```bash
@@ -68,13 +88,17 @@ npm run dev
 ### Production Mode
 
 ```bash
+# Set CORS origin first
+export CORS_ORIGIN="chrome-extension://YOUR_EXTENSION_ID"
+export PORT=3000
+
 npm start
 ```
 
-The server will start on port 3000 by default. You can change the port by setting the `PORT` environment variable:
+Or using inline environment variables:
 
 ```bash
-PORT=8080 npm start
+CORS_ORIGIN="chrome-extension://YOUR_ID" PORT=8080 npm start
 ```
 
 ## API Endpoints
@@ -153,6 +177,7 @@ docker build -t anomtube-backend .
 ```bash
 docker run -d \
   -p 3000:3000 \
+  -e CORS_ORIGIN="chrome-extension://YOUR_EXTENSION_ID" \
   --name anomtube-backend \
   --restart unless-stopped \
   anomtube-backend
@@ -173,6 +198,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3000
+      - CORS_ORIGIN=chrome-extension://YOUR_EXTENSION_ID
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -196,18 +222,32 @@ The API implements rate limiting to prevent abuse:
 
 ⚠️ **Important Security Notes:**
 
-1. **Production Deployment**: Update CORS settings in `server.js` to restrict origins:
+1. **CORS Configuration**: Always set the `CORS_ORIGIN` environment variable in production:
+   ```bash
+   # Single origin
+   export CORS_ORIGIN="chrome-extension://YOUR_EXTENSION_ID"
+   
+   # Multiple origins (comma-separated)
+   export CORS_ORIGIN="chrome-extension://ID1,chrome-extension://ID2"
+   ```
+   
+   The default setting (`http://localhost:3000`) is only for local development.
+
+2. **Authentication**: Consider adding authentication for production use (API keys, JWT, etc.)
+
+3. **HTTPS**: Use HTTPS in production via reverse proxy (nginx/caddy)
+
+4. **Firewall**: Restrict access to trusted IPs if possible
+
+5. **Rate Limiting**: Default limits are conservative; adjust based on your needs:
    ```javascript
-   app.use(cors({
-     origin: 'chrome-extension://YOUR_EXTENSION_ID',
-     methods: ['GET', 'POST']
-   }));
+   const RATE_LIMIT_MAX_REQUESTS = 10;  // Requests per window
+   const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;  // 15 minutes
    ```
 
-2. **Authentication**: Consider adding authentication for production use
-3. **HTTPS**: Use HTTPS in production (reverse proxy with nginx/caddy)
-4. **Firewall**: Restrict access to trusted IPs if possible
-5. **Rate Limiting**: Adjust rate limits based on your needs
+6. **Logging**: Implement proper logging in production (winston, pino, etc.)
+
+7. **Monitoring**: Set up health checks and alerting
 
 ## Troubleshooting
 

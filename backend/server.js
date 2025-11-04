@@ -17,9 +17,12 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const DOWNLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_CONCURRENT_DOWNLOADS = 3;
 
+// Security configuration
+const ALLOWED_ORIGINS = process.env.CORS_ORIGIN || 'http://localhost:3000';
+
 // Middleware
 app.use(cors({
-  origin: '*', // In production, set this to your extension's origin
+  origin: ALLOWED_ORIGINS, // Configure via environment variable
   methods: ['GET', 'POST']
 }));
 
