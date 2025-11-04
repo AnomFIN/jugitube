@@ -117,6 +117,10 @@ class AnomTube {
         this.updateAdPreferences(request.preferences || {});
       } else if (request.action === 'updateSettings') {
         this.updateSettings(request.settings || {});
+      } else if (request.action === 'addBookmark') {
+        this.handleAddBookmark();
+      } else if (request.action === 'togglePip') {
+        this.handleTogglePip();
       }
     });
 
@@ -518,6 +522,14 @@ class AnomTube {
             this.updateVideoElement();
           }
         }
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'theme')) {
+      if (this.themeManager) {
+        this.themeManager.setTheme(settings.theme).catch(err => {
+          console.warn('Failed to set theme:', err);
+        });
       }
     }
   }
