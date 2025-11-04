@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JugiTube - Asetukset</title>
+  <title>AnomTube Settings</title>
   <style>
     :root {
       color-scheme: dark;
-      --primary-color: #6ca8ff;
-      --secondary-color: #b56cff;
-      --bg-color: #0a1220;
-      --surface-color: rgba(15, 25, 45, 0.85);
-      --border-color: rgba(255, 255, 255, 0.12);
-      --text-color: #f8faff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --accent-primary: #6ca8ff;
+      --accent-secondary: #b56cff;
+      --base-surface: rgba(8, 14, 28, 0.78);
+      --base-border: rgba(255, 255, 255, 0.12);
+      --base-text: #f8faff;
+      font-family: 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
     }
 
     * {
@@ -23,13 +22,12 @@
     body {
       margin: 0;
       padding: 40px 20px;
+      font-family: inherit;
+      background: radial-gradient(circle at 10% -10%, rgba(112, 173, 255, 0.32), transparent 55%),
+        radial-gradient(circle at 88% 12%, rgba(255, 132, 255, 0.18), transparent 58%),
+        linear-gradient(160deg, #040810 0%, #0b162d 60%, #050913 100%);
+      color: var(--base-text);
       min-height: 100vh;
-      background: radial-gradient(circle at 15% 10%, rgba(108, 168, 255, 0.15), transparent 50%),
-        radial-gradient(circle at 85% 90%, rgba(181, 108, 255, 0.12), transparent 50%),
-        linear-gradient(160deg, #040810 0%, #0a1220 50%, #050913 100%);
-      color: var(--text-color);
-      font-size: 16px;
-      line-height: 1.6;
     }
 
     .container {
@@ -39,269 +37,190 @@
 
     .header {
       text-align: center;
-      margin-bottom: 48px;
-      padding: 32px;
-      background: var(--surface-color);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      margin-bottom: 40px;
     }
 
     .header h1 {
-      margin: 0 0 12px 0;
       font-size: 32px;
       font-weight: 700;
-      letter-spacing: 1.5px;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      margin: 0 0 10px 0;
     }
 
     .header p {
-      margin: 0;
       font-size: 14px;
       opacity: 0.75;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-    }
-
-    .section {
-      background: var(--surface-color);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      padding: 32px;
-      margin-bottom: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .section-title {
-      margin: 0 0 24px 0;
-      font-size: 20px;
-      font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
+      margin: 0;
     }
 
-    .setting-row {
+    .settings-section {
+      background: var(--base-surface);
+      border: 1px solid var(--base-border);
+      border-radius: 24px;
+      padding: 30px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(24px) saturate(165%);
+      box-shadow: 0 28px 85px rgba(3, 9, 26, 0.75);
+    }
+
+    .settings-section h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin: 0 0 20px 0;
+    }
+
+    .setting-item {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      padding: 20px;
-      margin-bottom: 16px;
-      background: rgba(20, 30, 50, 0.6);
-      border: 1px solid var(--border-color);
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
       border-radius: 16px;
-      transition: background 0.3s ease;
+      background: rgba(11, 20, 44, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
-    .setting-row:last-child {
+    .setting-item:last-child {
       margin-bottom: 0;
     }
 
-    .setting-row:hover {
-      background: rgba(25, 35, 60, 0.7);
+    .checkbox-container {
+      position: relative;
+      flex-shrink: 0;
     }
 
-    .setting-info {
+    .checkbox-container input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .checkbox-container input[type="checkbox"]:checked {
+      background: linear-gradient(120deg, var(--accent-primary), var(--accent-secondary));
+      border-color: var(--accent-primary);
+    }
+
+    .checkbox-container input[type="checkbox"]:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .setting-content {
       flex: 1;
     }
 
-    .setting-label {
-      display: block;
-      font-weight: 600;
+    .setting-title {
       font-size: 15px;
-      letter-spacing: 1.2px;
+      font-weight: 600;
+      letter-spacing: 1.4px;
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin: 0 0 8px 0;
     }
 
     .setting-description {
       font-size: 13px;
       opacity: 0.75;
-      line-height: 1.5;
+      line-height: 1.6;
       margin: 0;
     }
 
-    .toggle-switch {
-      position: relative;
-      display: inline-flex;
-      width: 60px;
-      height: 32px;
-      flex-shrink: 0;
-    }
-
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: relative;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.16);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      display: block;
-    }
-
-    .slider::before {
-      content: '';
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      top: 50%;
-      left: 4px;
-      transform: translateY(-50%);
-      background: linear-gradient(145deg, #ffffff 0%, #dfe7ff 100%);
-      box-shadow: 0 8px 20px rgba(30, 40, 90, 0.4);
-      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s ease;
-    }
-
-    input:checked + .slider {
-      background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
-      box-shadow: 0 8px 20px rgba(104, 156, 255, 0.45);
-    }
-
-    input:checked + .slider::before {
-      transform: translate(28px, -50%);
-      box-shadow: 0 10px 25px rgba(80, 212, 255, 0.55);
-    }
-
-    .status-message {
+    .save-status {
       text-align: center;
-      padding: 16px 24px;
-      border-radius: 16px;
-      font-size: 13px;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 12px;
       letter-spacing: 1.4px;
       text-transform: uppercase;
-      margin-top: 24px;
-      border: 1px solid transparent;
+      margin-top: 20px;
       opacity: 0;
       transition: opacity 0.3s ease;
     }
 
-    .status-message.visible {
+    .save-status.show {
       opacity: 1;
     }
 
-    .status-message.success {
+    .save-status.success {
       background: rgba(80, 243, 192, 0.18);
-      border-color: rgba(80, 243, 192, 0.45);
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 48px;
-      padding: 24px;
-      font-size: 12px;
-      letter-spacing: 1.6px;
-      text-transform: uppercase;
-      opacity: 0.7;
-    }
-
-    .footer strong {
-      color: var(--primary-color);
-    }
-
-    @media (max-width: 640px) {
-      body {
-        padding: 20px 16px;
-      }
-
-      .header h1 {
-        font-size: 24px;
-      }
-
-      .section {
-        padding: 24px 20px;
-      }
-
-      .setting-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-      }
-
-      .toggle-switch {
-        align-self: flex-end;
-      }
+      border: 1px solid rgba(80, 243, 192, 0.45);
+      color: var(--base-text);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>JugiTube Asetukset</h1>
-      <p>AnomFIN Tools · Audio Only Tube Configuration</p>
+      <h1>AnomTube Settings</h1>
+      <p>Customize your AnomTube experience</p>
     </div>
 
-    <div class="section">
-      <h2 class="section-title">Käyttöliittymä</h2>
+    <div class="settings-section">
+      <h2>Interface Settings</h2>
       
-      <div class="setting-row">
-        <div class="setting-info">
-          <label class="setting-label" for="expandToolbar">Laajenna työkalurivi</label>
-          <p class="setting-description">Näytä YouTube:n sivupalkki täydessä leveydessä navigoinnin helpottamiseksi.</p>
-        </div>
-        <label class="toggle-switch">
+      <div class="setting-item">
+        <div class="checkbox-container">
           <input type="checkbox" id="expandToolbar">
-          <span class="slider"></span>
-        </label>
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Expand Toolbar</div>
+          <div class="setting-description">Increase the minimum width of the YouTube toolbar for better visibility on larger screens.</div>
+        </div>
       </div>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <label class="setting-label" for="hideLyricPopup">Piilota lyriikka-popup</label>
-          <p class="setting-description">Estä lyriikka-ponnahdusikkunat näkymästä videon aikana.</p>
-        </div>
-        <label class="toggle-switch">
+      <div class="setting-item">
+        <div class="checkbox-container">
           <input type="checkbox" id="hideLyricPopup">
-          <span class="slider"></span>
-        </label>
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Hide Lyric Popup</div>
+          <div class="setting-description">Automatically remove YouTube's native lyric popup windows to avoid conflicts with AnomTube's lyrics display.</div>
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <h2 class="section-title">Mainosten hallinta</h2>
+    <div class="settings-section">
+      <h2>Ad Control Settings</h2>
       
-      <div class="setting-row">
-        <div class="setting-info">
-          <label class="setting-label" for="allowVideoKeepAdSettings">Salli video mainosasetusten kanssa</label>
-          <p class="setting-description">Jos päällä, älä estä videota, mutta käytä silti mainossuodatusta.</p>
-        </div>
-        <label class="toggle-switch">
+      <div class="setting-item">
+        <div class="checkbox-container">
           <input type="checkbox" id="allowVideoKeepAdSettings">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <label class="setting-label" for="autoClickSkips">Klikkaa "Ohita" automaattisesti</label>
-          <p class="setting-description">Ohita mainokset automaattisesti heti kun "Ohita mainos" -painike ilmestyy.</p>
         </div>
-        <label class="toggle-switch">
+        <div class="setting-content">
+          <div class="setting-title">Allow Video, Keep Ad Settings</div>
+          <div class="setting-description">Keep video visible while maintaining ad-skipping features. When enabled, video won't be blocked but ad controls remain active.</div>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <div class="checkbox-container">
           <input type="checkbox" id="autoClickSkips">
-          <span class="slider"></span>
-        </label>
+        </div>
+        <div class="setting-content">
+          <div class="setting-title">Auto-Click Skip Buttons</div>
+          <div class="setting-description">Automatically click "Skip Ad" buttons as soon as they appear on YouTube videos.</div>
+        </div>
       </div>
     </div>
 
-    <div id="statusMessage" class="status-message">
-      Asetukset tallennettu!
-    </div>
-
-    <div class="footer">
-      Made by: <strong>Jugi @ AnomFIN · AnomTools</strong>
-    </div>
+    <div class="save-status" id="saveStatus">Settings saved successfully!</div>
   </div>
 
   <script src="options.js"></script>

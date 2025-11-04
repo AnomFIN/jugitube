@@ -1,11 +1,19 @@
-/* Toolbar CSS for JugiTube Extension */
-/* CSS variable for toolbar width with responsive behavior */
-
+/* Toolbar responsiveness styles for AnomTube */
 :root {
   --jugitube-toolbar-width: 220px;
 }
 
-/* Responsive media query for smaller screens */
+/* Responsive toolbar adjustments */
+#masthead-container {
+  min-width: var(--jugitube-toolbar-width);
+}
+
+/* Expand toolbar when setting is enabled */
+[data-jugitube-expand-toolbar="true"] #masthead-container {
+  min-width: max(var(--jugitube-toolbar-width), 280px);
+}
+
+/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
   :root {
     --jugitube-toolbar-width: 180px;
@@ -14,23 +22,6 @@
 
 @media (max-width: 480px) {
   :root {
-    --jugitube-toolbar-width: 60px;
+    --jugitube-toolbar-width: 160px;
   }
-}
-
-/* Apply toolbar width to YouTube sidebar elements */
-#guide-inner,
-#guide-content,
-ytd-guide-renderer,
-ytd-mini-guide-renderer {
-  width: var(--jugitube-toolbar-width) !important;
-  min-width: var(--jugitube-toolbar-width) !important;
-}
-
-/* Collapsed toolbar state */
-body[jugitube-toolbar-collapsed="true"] #guide-inner,
-body[jugitube-toolbar-collapsed="true"] #guide-content,
-body[jugitube-toolbar-collapsed="true"] ytd-guide-renderer {
-  width: 72px !important;
-  min-width: 72px !important;
 }

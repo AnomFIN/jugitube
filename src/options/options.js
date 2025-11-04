@@ -1,107 +1,88 @@
-// Options page script for JugiTube extension
-// Manages settings stored in localStorage 'jugitube_settings_v1'
-
-const STORAGE_KEY = 'jugitube_settings_v1';
+// Options page JavaScript for AnomTube settings
+const SETTINGS_KEY = 'jugitube_settings_v1';
 
 // Default settings
-const DEFAULT_SETTINGS = {
-  expandToolbar: true,
+const defaultSettings = {
+  expandToolbar: false,
   hideLyricPopup: false,
   allowVideoKeepAdSettings: false,
-  autoClickSkips: true
+  autoClickSkips: false
 };
 
 // Load settings from localStorage
 function loadSettings() {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+      return { ...defaultSettings, ...JSON.parse(stored) };
     }
   } catch (error) {
-    console.error('Failed to load settings:', error);
+    console.error('Error loading settings:', error);
   }
-  return { ...DEFAULT_SETTINGS };
+  return defaultSettings;
 }
 
 // Save settings to localStorage
 function saveSettings(settings) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    return true;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    showSaveStatus();
+    // Notify all tabs about settings change
+    broadcastSettingsChange(settings);
   } catch (error) {
-    console.error('Failed to save settings:', error);
-    return false;
+    console.error('Error saving settings:', error);
   }
 }
 
-// Show status message
-function showStatusMessage() {
-  const statusMessage = document.getElementById('statusMessage');
-  statusMessage.classList.add('visible', 'success');
-  
+// Show save status message
+function showSaveStatus() {
+  const status = document.getElementById('saveStatus');
+  status.classList.add('show');
   setTimeout(() => {
-    statusMessage.classList.remove('visible');
+    status.classList.remove('show');
   }, 2000);
 }
 
+// Broadcast settings change to all tabs
+function broadcastSettingsChange(settings) {
+  // Use chrome.storage for cross-tab communication if available
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.set({ [SETTINGS_KEY]: settings });
+  }
+  
+  // Also use localStorage event for same-origin tabs
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: SETTINGS_KEY,
+    newValue: JSON.stringify(settings),
+    url: window.location.href
+  }));
+}
+
 // Initialize the options page
-function init() {
+function initOptions() {
   const settings = loadSettings();
   
-  // Set checkbox states from loaded settings
-  const expandToolbarCheckbox = document.getElementById('expandToolbar');
-  const hideLyricPopupCheckbox = document.getElementById('hideLyricPopup');
-  const allowVideoKeepAdSettingsCheckbox = document.getElementById('allowVideoKeepAdSettings');
-  const autoClickSkipsCheckbox = document.getElementById('autoClickSkips');
+  // Set checkbox states
+  document.getElementById('expandToolbar').checked = settings.expandToolbar;
+  document.getElementById('hideLyricPopup').checked = settings.hideLyricPopup;
+  document.getElementById('allowVideoKeepAdSettings').checked = settings.allowVideoKeepAdSettings;
+  document.getElementById('autoClickSkips').checked = settings.autoClickSkips;
   
-  if (expandToolbarCheckbox) {
-    expandToolbarCheckbox.checked = settings.expandToolbar;
-  }
-  
-  if (hideLyricPopupCheckbox) {
-    hideLyricPopupCheckbox.checked = settings.hideLyricPopup;
-  }
-  
-  if (allowVideoKeepAdSettingsCheckbox) {
-    allowVideoKeepAdSettingsCheckbox.checked = settings.allowVideoKeepAdSettings;
-  }
-  
-  if (autoClickSkipsCheckbox) {
-    autoClickSkipsCheckbox.checked = settings.autoClickSkips;
-  }
-  
-  // Add event listeners for changes
-  const checkboxes = [
-    expandToolbarCheckbox,
-    hideLyricPopupCheckbox,
-    allowVideoKeepAdSettingsCheckbox,
-    autoClickSkipsCheckbox
-  ];
-  
-  checkboxes.forEach(checkbox => {
-    if (checkbox) {
-      checkbox.addEventListener('change', () => {
-        const currentSettings = loadSettings();
-        currentSettings[checkbox.id] = checkbox.checked;
-        
-        if (saveSettings(currentSettings)) {
-          showStatusMessage();
-          
-          // Notify content scripts about the change
-          // This will be picked up by settings-apply.js via storage events
-          window.dispatchEvent(new CustomEvent('jugitube-settings-changed', {
-            detail: currentSettings
-          }));
-        }
-      });
-    }
+  // Add event listeners
+  const checkboxes = ['expandToolbar', 'hideLyricPopup', 'allowVideoKeepAdSettings', 'autoClickSkips'];
+  checkboxes.forEach(id => {
+    const checkbox = document.getElementById(id);
+    checkbox.addEventListener('change', () => {
+      const settings = loadSettings();
+      settings[id] = checkbox.checked;
+      saveSettings(settings);
+    });
   });
 }
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', initOptions);
 } else {
-  init();
+  initOptions();
 }

@@ -1,107 +1,109 @@
-// main.js - Initializes JugiTube modules based on settings
-// Separates video-block logic from ad settings
-
+// Main content script - initializes all modules and coordinates video blocking
 (function() {
   'use strict';
 
-  const DEV_LOGGING = true;
+  console.log('AnomTube: Main module initializing');
 
-  // Log function for development
-  function devLog(...args) {
-    if (DEV_LOGGING) {
-      console.log('[JugiTube Main]', ...args);
-    }
-  }
+  // Module initialization state
+  const modules = {
+    settingsApply: false,
+    adSkipper: false,
+    lyricHandler: false
+  };
 
-  // Check if video blocking should be disabled
-  function shouldDisableVideoBlock() {
-    if (!window.jugitubeSettings) {
+  // Check if video blocking should be active
+  function shouldBlockVideo() {
+    // If allowVideoKeepAdSettings is enabled, don't block video
+    if (window.jugitubeSettings && window.jugitubeSettings.allowVideoKeepAdSettings) {
       return false;
     }
     
-    // If allowVideoKeepAdSettings is true, don't block video
-    return window.jugitubeSettings.allowVideoKeepAdSettings === true;
-  }
-
-  // Initialize video blocking logic
-  function initVideoBlock() {
-    if (shouldDisableVideoBlock()) {
-      devLog('Video blocking disabled by settings (allowVideoKeepAdSettings = true)');
-      return;
-    }
-
-    devLog('Video blocking enabled - would initialize video block logic here');
-    
-    // Note: The actual video blocking logic is already in content.js (AnomTube class)
-    // This is just a placeholder to show where it would be controlled from
-    // In a real refactor, we would move the video blocking logic here
-  }
-
-  // Initialize ad skipper
-  function initAdSkipper() {
-    devLog('Ad skipper initialization delegated to adSkipper.js');
-    // The adSkipper.js module initializes itself
-    // It checks window.jugitubeSettings.autoClickSkips internally
-  }
-
-  // Initialize lyric handler
-  function initLyricHandler() {
-    devLog('Lyric handler initialization delegated to lyricHandler.js');
-    // The lyricHandler.js module initializes itself
-    // It checks window.jugitubeSettings.hideLyricPopup internally
-  }
-
-  // Main initialization
-  function init() {
-    devLog('JugiTube Main initializing...');
-
-    // Wait for settings to be loaded
-    if (!window.jugitubeSettings) {
-      window.addEventListener('jugitube-settings-loaded', (e) => {
-        devLog('Settings loaded:', e.detail);
-        startModules();
-      });
-    } else {
-      startModules();
-    }
-
-    // Listen for settings changes
-    window.addEventListener('jugitube-settings-changed', (e) => {
-      devLog('Settings changed, reinitializing modules');
-      startModules();
+    // Check if AnomTube extension is enabled via chrome.storage
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.sync.get(['enabled'], (data) => {
+          resolve(data.enabled === true);
+        });
+      } else {
+        // If chrome.storage is not available, default to false
+        resolve(false);
+      }
     });
   }
 
-  function startModules() {
-    devLog('Starting modules with settings:', window.jugitubeSettings);
+  // Initialize video blocking logic
+  async function initVideoBlocking() {
+    const blockVideo = await shouldBlockVideo();
     
-    // Initialize modules
-    // Note: adSkipper and lyricHandler self-initialize
-    // They're already loaded and listening for settings
-    
-    // Video blocking logic
-    initVideoBlock();
-    
-    devLog('All modules initialized');
-    
-    // Dispatch event to signal that main initialization is complete
-    window.dispatchEvent(new CustomEvent('jugitube-main-initialized', {
-      detail: {
-        videoBlockDisabled: shouldDisableVideoBlock()
-      }
-    }));
+    if (blockVideo) {
+      console.log('AnomTube: Video blocking is active');
+      // The existing content.js (AnomTube class) handles video blocking
+      // This main.js just coordinates when it should be active
+    } else {
+      console.log('AnomTube: Video blocking is disabled (allowVideoKeepAdSettings or extension disabled)');
+    }
   }
 
-  // Initialize
+  // Initialize ad-related modules
+  function initAdModules() {
+    console.log('AnomTube: Ad modules initialized');
+    // Ad modules (adSkipper) work independently of video blocking
+    // They are controlled by their own settings
+  }
+
+  // Handle settings changes
+  function handleSettingsChange(event) {
+    console.log('AnomTube: Settings changed', event.detail);
+    
+    // Re-check if video blocking should be active
+    initVideoBlocking();
+  }
+
+  // Check module initialization status
+  function checkModules() {
+    const allLoaded = Object.values(modules).every(loaded => loaded);
+    if (allLoaded) {
+      console.log('AnomTube: All modules initialized successfully');
+    }
+  }
+
+  // Initialize all modules
+  function init() {
+    console.log('AnomTube: Starting initialization');
+    
+    // Mark modules as loaded (they initialize themselves)
+    modules.settingsApply = true;
+    modules.adSkipper = true;
+    modules.lyricHandler = true;
+    
+    checkModules();
+    
+    // Initialize video blocking logic
+    initVideoBlocking();
+    
+    // Initialize ad modules
+    initAdModules();
+    
+    // Listen for settings changes
+    window.addEventListener('jugitube-settings-loaded', handleSettingsChange);
+    
+    // Re-check video blocking when extension state changes
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.onMessage.addListener((request) => {
+        if (request.action === 'toggleAnomTube' || request.action === 'updateAdPreferences') {
+          initVideoBlocking();
+        }
+      });
+    }
+  }
+
+  // Start initialization when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  // Export for debugging
-  window.jugitubeMain = {
-    shouldDisableVideoBlock,
-    init
-  };
+  // Export module status for debugging
+  window.jugitubeModules = modules;
 })();

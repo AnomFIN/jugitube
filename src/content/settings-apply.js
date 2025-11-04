@@ -1,80 +1,89 @@
-// settings-apply.js - Loads JugiTube settings and applies them
-// Runs at document_idle to ensure page is ready
-
+// Settings apply content script - applies settings to the page
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'jugitube_settings_v1';
-  
+  const SETTINGS_KEY = 'jugitube_settings_v1';
+
   // Default settings
-  const DEFAULT_SETTINGS = {
-    expandToolbar: true,
+  const defaultSettings = {
+    expandToolbar: false,
     hideLyricPopup: false,
     allowVideoKeepAdSettings: false,
-    autoClickSkips: true
+    autoClickSkips: false
   };
 
   // Load settings from localStorage
   function loadSettings() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(SETTINGS_KEY);
       if (stored) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        return { ...defaultSettings, ...JSON.parse(stored) };
       }
     } catch (error) {
-      console.error('[JugiTube] Failed to load settings:', error);
+      console.error('AnomTube: Error loading settings:', error);
     }
-    return { ...DEFAULT_SETTINGS };
+    return defaultSettings;
   }
 
-  // Apply CSS variable for toolbar width
+  // Apply CSS variables based on settings
   function applyCSSVariables(settings) {
     const root = document.documentElement;
     
-    // Set toolbar collapsed state
+    // Apply toolbar width variable
     if (settings.expandToolbar) {
-      document.body.removeAttribute('jugitube-toolbar-collapsed');
+      root.style.setProperty('--jugitube-toolbar-width', '280px');
+      root.setAttribute('data-jugitube-expand-toolbar', 'true');
     } else {
-      document.body.setAttribute('jugitube-toolbar-collapsed', 'true');
+      root.style.setProperty('--jugitube-toolbar-width', '220px');
+      root.removeAttribute('data-jugitube-expand-toolbar');
     }
   }
 
-  // Apply settings
+  // Apply settings to the page
   function applySettings() {
     const settings = loadSettings();
     
-    // Make settings available globally
+    // Make settings available globally for other scripts
     window.jugitubeSettings = settings;
     
     // Apply CSS variables
     applyCSSVariables(settings);
     
-    console.log('[JugiTube] Settings applied:', settings);
-    
-    // Dispatch event to notify other scripts
+    // Dispatch custom event to notify other scripts
     window.dispatchEvent(new CustomEvent('jugitube-settings-loaded', {
       detail: settings
     }));
   }
 
   // Listen for settings changes
-  window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY) {
-      console.log('[JugiTube] Settings changed, reapplying...');
-      applySettings();
+  function watchSettingsChanges() {
+    // Watch localStorage changes
+    window.addEventListener('storage', (event) => {
+      if (event.key === SETTINGS_KEY) {
+        applySettings();
+      }
+    });
+
+    // Watch chrome.storage changes if available
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes[SETTINGS_KEY]) {
+          applySettings();
+        }
+      });
     }
-  });
+  }
 
-  // Listen for custom settings change events
-  window.addEventListener('jugitube-settings-changed', (e) => {
-    console.log('[JugiTube] Settings changed via custom event, reapplying...');
+  // Initialize settings application
+  function init() {
     applySettings();
-  });
+    watchSettingsChanges();
+  }
 
-  // Apply settings on load
+  // Run initialization
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applySettings);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    applySettings();
+    init();
   }
 })();
