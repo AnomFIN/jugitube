@@ -176,6 +176,15 @@ class AnomTube {
         }
       }
     });
+
+    // Listen for jugitube settings changes
+    window.addEventListener('jugitube-settings-changed', () => {
+      console.log('JugiTube settings changed, reapplying activation logic');
+      if (this.isEnabled) {
+        this.deactivate();
+        this.activate();
+      }
+    });
   }
 
   applyToolbarExpansion() {
