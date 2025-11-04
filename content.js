@@ -1,4 +1,7 @@
 // Content script for AnomTube extension
+const _buttonIds = new WeakMap();
+let _nextButtonId = 1;
+
 class AnomTube {
   constructor() {
     this.isEnabled = false;
@@ -304,13 +307,10 @@ class AnomTube {
   }
 
   updateSettings(settings = {}) {
-    let changed = false;
-
     if (Object.prototype.hasOwnProperty.call(settings, 'hideLyrics')) {
-      const newValue = Boolean(settings.hideLyrics);
-      if (this.hideLyrics !== newValue) {
-        this.hideLyrics = newValue;
-        changed = true;
+      const newValueHideLyrics = Boolean(settings.hideLyrics);
+      if (this.hideLyrics !== newValueHideLyrics) {
+        this.hideLyrics = newValueHideLyrics;
 
         if (this.hideLyrics) {
           this.closeLyricsWindow();
@@ -321,10 +321,9 @@ class AnomTube {
     }
 
     if (Object.prototype.hasOwnProperty.call(settings, 'allowVideo')) {
-      const newValue = Boolean(settings.allowVideo);
-      if (this.allowVideo !== newValue) {
-        this.allowVideo = newValue;
-        changed = true;
+      const newValueAllowVideo = Boolean(settings.allowVideo);
+      if (this.allowVideo !== newValueAllowVideo) {
+        this.allowVideo = newValueAllowVideo;
 
         if (this.isEnabled) {
           if (this.allowVideo) {
@@ -498,11 +497,11 @@ class AnomTube {
 
     for (const selector of skipSelectors) {
       const skipButtons = document.querySelectorAll(selector);
-      skipButtons.forEach((skipButton) => {
+      for (const skipButton of skipButtons) {
         if (this.tryClickAdButton(skipButton)) {
           return;
         }
-      });
+      }
     }
 
     const overlayCloseButtons = document.querySelectorAll(
@@ -575,8 +574,15 @@ class AnomTube {
 
   getButtonIdentifier(button) {
     try {
-      const rect = button.getBoundingClientRect();
-      return `${button.className}_${Math.round(rect.top)}_${Math.round(rect.left)}`;
+      const aria = button.getAttribute('aria-label') || null;
+      const text = (button.textContent || '').trim();
+      if (aria || text) {
+        return `${button.className}_${aria || text}`;
+      }
+      if (!_buttonIds.has(button)) {
+        _buttonIds.set(button, `el_${_nextButtonId++}`);
+      }
+      return `${button.className}_${_buttonIds.get(button)}`;
     } catch (error) {
       return `${button.className}_${Date.now()}`;
     }
