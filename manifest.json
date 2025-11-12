@@ -30,7 +30,11 @@
         "modules/downloadManager.js",
         "content.js"
       ],
-      "css": ["content.css"],
+      "css": [
+        "content.css",
+        "src/css/responsive.css",
+        "src/css/themes.css"
+      ],
       "run_at": "document_idle"
     }
   ],

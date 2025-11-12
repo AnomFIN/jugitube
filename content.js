@@ -82,6 +82,16 @@ class AnomTube {
       expandToolbar: true
     };
 
+    // New feature modules
+    this.themeManager = typeof ThemeManager !== 'undefined' ? new ThemeManager() : null;
+    this.hotkeyManager = typeof HotkeyManager !== 'undefined' ? new HotkeyManager() : null;
+    this.pipManager = typeof PipManager !== 'undefined' ? new PipManager() : null;
+    this.playlistManager = typeof PlaylistManager !== 'undefined' ? new PlaylistManager() : null;
+
+    // Notification queue to prevent overlapping notifications
+    this.notificationQueue = [];
+    this.activeNotification = null;
+
     this.init();
   }
 
@@ -214,6 +224,196 @@ class AnomTube {
     });
   }
 
+  /**
+   * Initialize feature modules (themes, hotkeys, PiP, playlists)
+   */
+  initializeFeatureModules() {
+    // Initialize theme manager
+    if (this.themeManager) {
+      this.themeManager.init().catch(err => {
+        console.warn('Theme manager initialization failed:', err);
+      });
+    }
+
+    // Initialize playlist manager
+    if (this.playlistManager) {
+      this.playlistManager.init().catch(err => {
+        console.warn('Playlist manager initialization failed:', err);
+      });
+    }
+
+    // Initialize hotkey manager with custom handlers
+    if (this.hotkeyManager) {
+      this.hotkeyManager.init({
+        videoElement: this.videoElement,
+        handlers: {
+          toggleTheme: () => this.handleToggleTheme(),
+          togglePip: () => this.handleTogglePip(),
+          addBookmark: () => this.handleAddBookmark(),
+          openDownload: () => this.handleOpenDownload()
+        }
+      });
+    }
+
+    // Set up event listeners for hotkey actions
+    window.addEventListener('anomtube-hotkey-toggleTheme', () => this.handleToggleTheme());
+    window.addEventListener('anomtube-hotkey-togglePip', () => this.handleTogglePip());
+    window.addEventListener('anomtube-hotkey-addBookmark', () => this.handleAddBookmark());
+    window.addEventListener('anomtube-hotkey-openDownload', () => this.handleOpenDownload());
+
+    console.log('Feature modules initialized');
+  }
+
+  /**
+   * Handle theme toggle hotkey
+   */
+  async handleToggleTheme() {
+    if (!this.themeManager) {
+      return;
+    }
+
+    try {
+      const newTheme = await this.themeManager.toggle();
+      console.log(`Theme toggled to: ${newTheme}`);
+      
+      // Show temporary notification
+      this.showNotification(`Theme: ${newTheme === 'dark' ? 'Dark' : 'Light'}`, 2000);
+    } catch (error) {
+      console.error('Failed to toggle theme:', error);
+    }
+  }
+
+  /**
+   * Handle PiP toggle hotkey
+   */
+  async handleTogglePip() {
+    if (!this.pipManager || !this.videoElement) {
+      return;
+    }
+
+    try {
+      // Initialize PiP manager with current video element
+      if (!this.pipManager.videoElement) {
+        this.pipManager.init(this.videoElement);
+      }
+
+      const pipActive = await this.pipManager.toggle();
+      console.log(`PiP ${pipActive ? 'entered' : 'exited'}`);
+      
+      this.showNotification(`PiP ${pipActive ? 'On' : 'Off'}`, 2000);
+    } catch (error) {
+      console.error('Failed to toggle PiP:', error);
+      this.showNotification('PiP not available', 2000);
+    }
+  }
+
+  /**
+   * Handle add bookmark hotkey
+   */
+  async handleAddBookmark() {
+    if (!this.playlistManager || !this.videoElement) {
+      return;
+    }
+
+    try {
+      const metadata = this.extractVideoMetadata();
+      const videoId = this.extractVideoId();
+      const timestamp = this.videoElement.currentTime;
+
+      const bookmark = await this.playlistManager.addBookmark({
+        videoId: videoId || window.location.href,
+        title: metadata.title,
+        artist: metadata.artist,
+        timestamp: timestamp,
+        note: `Bookmark at ${this.playlistManager.formatTimestamp(timestamp)}`
+      });
+
+      console.log('Bookmark added:', bookmark);
+      this.showNotification(`Bookmarked at ${this.playlistManager.formatTimestamp(timestamp)}`, 3000);
+    } catch (error) {
+      console.error('Failed to add bookmark:', error);
+      this.showNotification('Failed to add bookmark', 2000);
+    }
+  }
+
+  /**
+   * Handle open download UI hotkey
+   */
+  handleOpenDownload() {
+    // This would open a download UI modal or panel
+    console.log('Download UI requested');
+    this.showNotification('Download feature: Press D or use extension popup', 3000);
+  }
+
+  /**
+   * Show temporary notification with queue management
+   * @param {string} message - Notification message
+   * @param {number} duration - Duration in milliseconds
+   */
+  showNotification(message, duration = 2000) {
+    // Add to queue
+    this.notificationQueue.push({ message, duration });
+    
+    // Process queue if no active notification
+    if (!this.activeNotification) {
+      this.processNotificationQueue();
+    }
+  }
+
+  /**
+   * Process notification queue
+   */
+  processNotificationQueue() {
+    if (this.notificationQueue.length === 0) {
+      return;
+    }
+
+    const { message, duration } = this.notificationQueue.shift();
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'anomtube-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2147483647;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    `;
+
+    this.activeNotification = notification;
+    document.body.appendChild(notification);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      notification.style.opacity = '1';
+    });
+
+    // Fade out and remove
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        notification.remove();
+        this.activeNotification = null;
+        
+        // Process next notification in queue
+        this.processNotificationQueue();
+      }, 300);
+    }, duration);
+  }
+
   applyToolbarExpansion() {
     if (this.settings.expandToolbar) {
       document.body.setAttribute('data-anomtube-expand-toolbar', 'true');
@@ -293,6 +493,16 @@ class AnomTube {
     }
     
     this.updateAdControlLoop();
+
+    // Update video element for hotkey and PiP managers
+    if (this.videoElement) {
+      if (this.hotkeyManager) {
+        this.hotkeyManager.setVideoElement(this.videoElement);
+      }
+      if (this.pipManager) {
+        this.pipManager.setVideoElement(this.videoElement);
+      }
+    }
   }
 
   deactivate() {
@@ -367,6 +577,14 @@ class AnomTube {
             this.updateVideoElement();
           }
         }
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'theme')) {
+      if (this.themeManager) {
+        this.themeManager.setTheme(settings.theme).catch(err => {
+          console.warn('Failed to set theme:', err);
+        });
       }
     }
   }
@@ -840,6 +1058,16 @@ class AnomTube {
     
     if (isNewVideo && this.adPreferences.blockAds) {
       this.clearPlayerAds();
+    }
+
+    // Update video element for hotkey and PiP managers when video changes
+    if (isNewVideo) {
+      if (this.hotkeyManager) {
+        this.hotkeyManager.setVideoElement(video);
+      }
+      if (this.pipManager) {
+        this.pipManager.setVideoElement(video);
+      }
     }
 
     return { changed: isNewVideo, hasVideo: true };

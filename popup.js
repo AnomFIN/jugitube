@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const blockAdsToggle = document.getElementById('blockAdsToggle');
   const hideLyricsToggle = document.getElementById('hideLyricsToggle');
   const allowVideoToggle = document.getElementById('allowVideoToggle');
+  const themeToggle = document.getElementById('themeToggle');
+  const addBookmarkBtn = document.getElementById('addBookmarkBtn');
+  const togglePipBtn = document.getElementById('togglePipBtn');
   const defaultLogoUrl = chrome.runtime.getURL('logo.png');
 
   function updateStatus(enabled) {
@@ -54,8 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadState() {
-    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false, hideLyrics = false, allowVideo = false }, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo']),
+    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false, hideLyrics = false, allowVideo = false, theme = 'dark' }, assets] = await Promise.all([
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo', 'theme']),
       chrome.storage.local.get(['customBackground', 'customLogo'])
     ]);
 
@@ -65,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     blockAdsToggle.checked = !!blockAds;
     hideLyricsToggle.checked = !!hideLyrics;
     allowVideoToggle.checked = !!allowVideo;
+    themeToggle.checked = theme === 'light';
     updateStatus(!!enabled);
 
     updatePreview(backgroundPreview, assets.customBackground || null, {
@@ -198,6 +202,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     handleSettingChange('allowVideo', event.target.checked);
   });
 
+  // Theme toggle handler
+  themeToggle.addEventListener('change', async (event) => {
+    const theme = event.target.checked ? 'light' : 'dark';
+    await chrome.storage.sync.set({ theme });
+    await notifyActiveTab({
+      action: 'updateSettings',
+      settings: { theme }
+    });
+  });
+
+  // Add bookmark button
+  addBookmarkBtn.addEventListener('click', async () => {
+    await notifyActiveTab({
+      action: 'addBookmark'
+    });
+  });
+
+  // Toggle PiP button
+  togglePipBtn.addEventListener('click', async () => {
+    await notifyActiveTab({
+      action: 'togglePip'
+    });
+  });
+
   bindFileInput(backgroundInput, 'customBackground', backgroundPreview, {
     fallbackUrl: null,
     emptyLabel: 'Ei kuvaa'
@@ -291,6 +319,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (Object.prototype.hasOwnProperty.call(changes, 'allowVideo')) {
         allowVideoToggle.checked = !!changes.allowVideo.newValue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'theme')) {
+        themeToggle.checked = changes.theme.newValue === 'light';
       }
     }
   });
