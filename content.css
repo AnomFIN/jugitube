@@ -504,6 +504,25 @@
   backdrop-filter: blur(18px);
 }
 
+/* Toolbar expanded state */
+body[data-anomtube-expand-toolbar="true"] #anomfin-lyrics-console {
+  width: min(380px, calc(100vw - 48px));
+}
+
+body[data-anomtube-expand-toolbar="true"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+  min-width: 220px;
+  width: min(380px, calc(100vw - 48px));
+}
+
+body[data-anomtube-expand-toolbar="false"] #anomfin-lyrics-console {
+  width: min(300px, calc(100vw - 48px));
+}
+
+body[data-anomtube-expand-toolbar="false"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+  min-width: 180px;
+  width: min(300px, calc(100vw - 48px));
+}
+
 #anomfin-lyrics-console .anomfin-lyrics__panel::before,
 #anomfin-lyrics-console .anomfin-lyrics__panel::after {
   content: '';
@@ -943,7 +962,25 @@
     min-width: auto;
   }
 
+  body[data-anomtube-expand-toolbar="true"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+    min-width: 220px;
+  }
+
+  body[data-anomtube-expand-toolbar="false"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+    min-width: 180px;
+  }
+
   .anomfin-lyrics__lines {
     max-height: min(300px, calc(100vh - 220px));
+  }
+}
+
+@media (max-width: 560px) {
+  body[data-anomtube-expand-toolbar="true"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+    min-width: 200px;
+  }
+
+  body[data-anomtube-expand-toolbar="false"] #anomfin-lyrics-console .anomfin-lyrics__panel {
+    min-width: 160px;
   }
 }
