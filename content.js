@@ -1,4 +1,8 @@
 // Content script for AnomTube extension
+// WeakMap to store stable button IDs
+const _buttonIds = new WeakMap();
+let _nextButtonId = 1;
+
 class AnomTube {
   constructor() {
     this.isEnabled = false;
