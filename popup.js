@@ -219,6 +219,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     emptyLabel: 'Ei kuvaa'
   });
 
+  // New feature buttons
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const pipToggleBtn = document.getElementById('pipToggleBtn');
+  const downloadToggleBtn = document.getElementById('downloadToggleBtn');
+  const playlistToggleBtn = document.getElementById('playlistToggleBtn');
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', async () => {
+      await notifyActiveTab({ action: 'toggleTheme' });
+    });
+  }
+
+  if (pipToggleBtn) {
+    pipToggleBtn.addEventListener('click', async () => {
+      await notifyActiveTab({ action: 'togglePiP' });
+    });
+  }
+
+  if (downloadToggleBtn) {
+    downloadToggleBtn.addEventListener('click', async () => {
+      await notifyActiveTab({ action: 'toggleDownload' });
+    });
+  }
+
+  if (playlistToggleBtn) {
+    playlistToggleBtn.addEventListener('click', async () => {
+      await notifyActiveTab({ action: 'openPlaylistManager' });
+    });
+  }
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local') {
       if (Object.prototype.hasOwnProperty.call(changes, 'customBackground')) {
