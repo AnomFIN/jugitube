@@ -18,7 +18,9 @@
     }
 
     body {
-      width: 360px;
+      width: 480px;
+      min-height: 600px;
+      max-height: 800px;
       margin: 0;
       padding: 22px;
       font-family: inherit;
@@ -29,9 +31,9 @@
       display: flex;
       justify-content: center;
       align-items: stretch;
-      min-height: 100%;
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     body::before {
@@ -56,7 +58,7 @@
       display: flex;
       flex-direction: column;
       gap: 26px;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .popup-shell::before,
@@ -544,9 +546,10 @@
       }
     }
 
-    @media (max-width: 340px) {
+    @media (max-width: 500px) {
       body {
         width: 100%;
+        min-width: 360px;
         padding: 16px;
       }
 
