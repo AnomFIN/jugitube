@@ -1,34 +1,15 @@
-# AnomTube Download Backend Dockerfile
-FROM node:18-alpine
+# Example Dockerfile: base image with ffmpeg and yt-dlp
+FROM node:18-bullseye
 
-# Install yt-dlp and ffmpeg
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    ffmpeg \
-    && pip3 install --no-cache-dir yt-dlp
+RUN apt-get update && apt-get install -y ffmpeg python3 python3-pip && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+RUN pip3 install yt-dlp
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
 RUN npm ci --only=production
 
-# Copy application files
-COPY server.js ./
+COPY . .
 
-# Expose port
 EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Run as non-root user
-USER node
-
-# Start server
 CMD ["node", "server.js"]
