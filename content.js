@@ -1,4 +1,8 @@
 // Content script for AnomTube extension
+// WeakMap to store stable button IDs
+const _buttonIds = new WeakMap();
+let _nextButtonId = 1;
+
 class AnomTube {
   constructor() {
     this.isEnabled = false;
@@ -60,17 +64,33 @@ class AnomTube {
     this.adSkipperObserver = null;
     this.adSkipAttempts = new Map();
     this.lastAdSkipAttempt = 0;
+    this.buttonIds = new WeakMap();
+    this.nextButtonId = 1;
 
     // New modular components
     this.settingsManager = new SettingsManager();
     this.adSkipper = new AdSkipper();
     this.lyricHandler = new LyricHandler();
+    this.hotkeyManager = new HotkeyManager();
+    this.themeManager = new ThemeManager();
+    this.playlistManager = new PlaylistManager();
+    this.downloadManager = new DownloadManager();
     this.settings = {
       autoClickSkipAds: false,
       allowVideoKeepAdSettings: false,
       hidePopupCompletely: false,
       expandToolbar: true
     };
+
+    // New feature modules
+    this.themeManager = typeof ThemeManager !== 'undefined' ? new ThemeManager() : null;
+    this.hotkeyManager = typeof HotkeyManager !== 'undefined' ? new HotkeyManager() : null;
+    this.pipManager = typeof PipManager !== 'undefined' ? new PipManager() : null;
+    this.playlistManager = typeof PlaylistManager !== 'undefined' ? new PlaylistManager() : null;
+
+    // Notification queue to prevent overlapping notifications
+    this.notificationQueue = [];
+    this.activeNotification = null;
 
     this.init();
   }
@@ -91,6 +111,15 @@ class AnomTube {
     this.customAssets.logo = assets.customLogo || null;
     this.lyricsPosition = assets.lyricsConsolePosition || null;
 
+    // Initialize new managers
+    await this.themeManager.init();
+    await this.playlistManager.init();
+    await this.downloadManager.init();
+
+    // Setup hotkey callbacks
+    this.hotkeyManager.on('toggleDownload', () => this.downloadManager.toggleDownloadUI());
+    this.hotkeyManager.on('toggleTheme', () => this.themeManager.toggleTheme());
+
     if (this.isEnabled) {
       this.activate();
     }
@@ -108,6 +137,14 @@ class AnomTube {
         this.updateAdPreferences(request.preferences || {});
       } else if (request.action === 'updateSettings') {
         this.updateSettings(request.settings || {});
+      } else if (request.action === 'toggleTheme') {
+        this.themeManager.toggleTheme();
+      } else if (request.action === 'togglePiP') {
+        this.hotkeyManager.togglePiP();
+      } else if (request.action === 'toggleDownload') {
+        this.downloadManager.toggleDownloadUI();
+      } else if (request.action === 'openPlaylistManager') {
+        this.openPlaylistManager();
       }
     });
 
@@ -176,6 +213,205 @@ class AnomTube {
         }
       }
     });
+
+    // Listen for jugitube settings changes
+    window.addEventListener('jugitube-settings-changed', () => {
+      console.log('JugiTube settings changed, reapplying activation logic');
+      if (this.isEnabled) {
+        this.deactivate();
+        this.activate();
+      }
+    });
+  }
+
+  /**
+   * Initialize feature modules (themes, hotkeys, PiP, playlists)
+   */
+  initializeFeatureModules() {
+    // Initialize theme manager
+    if (this.themeManager) {
+      this.themeManager.init().catch(err => {
+        console.warn('Theme manager initialization failed:', err);
+      });
+    }
+
+    // Initialize playlist manager
+    if (this.playlistManager) {
+      this.playlistManager.init().catch(err => {
+        console.warn('Playlist manager initialization failed:', err);
+      });
+    }
+
+    // Initialize hotkey manager with custom handlers
+    if (this.hotkeyManager) {
+      this.hotkeyManager.init({
+        videoElement: this.videoElement,
+        handlers: {
+          toggleTheme: () => this.handleToggleTheme(),
+          togglePip: () => this.handleTogglePip(),
+          addBookmark: () => this.handleAddBookmark(),
+          openDownload: () => this.handleOpenDownload()
+        }
+      });
+    }
+
+    // Set up event listeners for hotkey actions
+    window.addEventListener('anomtube-hotkey-toggleTheme', () => this.handleToggleTheme());
+    window.addEventListener('anomtube-hotkey-togglePip', () => this.handleTogglePip());
+    window.addEventListener('anomtube-hotkey-addBookmark', () => this.handleAddBookmark());
+    window.addEventListener('anomtube-hotkey-openDownload', () => this.handleOpenDownload());
+
+    console.log('Feature modules initialized');
+  }
+
+  /**
+   * Handle theme toggle hotkey
+   */
+  async handleToggleTheme() {
+    if (!this.themeManager) {
+      return;
+    }
+
+    try {
+      const newTheme = await this.themeManager.toggle();
+      console.log(`Theme toggled to: ${newTheme}`);
+      
+      // Show temporary notification
+      this.showNotification(`Theme: ${newTheme === 'dark' ? 'Dark' : 'Light'}`, 2000);
+    } catch (error) {
+      console.error('Failed to toggle theme:', error);
+    }
+  }
+
+  /**
+   * Handle PiP toggle hotkey
+   */
+  async handleTogglePip() {
+    if (!this.pipManager || !this.videoElement) {
+      return;
+    }
+
+    try {
+      // Initialize PiP manager with current video element
+      if (!this.pipManager.videoElement) {
+        this.pipManager.init(this.videoElement);
+      }
+
+      const pipActive = await this.pipManager.toggle();
+      console.log(`PiP ${pipActive ? 'entered' : 'exited'}`);
+      
+      this.showNotification(`PiP ${pipActive ? 'On' : 'Off'}`, 2000);
+    } catch (error) {
+      console.error('Failed to toggle PiP:', error);
+      this.showNotification('PiP not available', 2000);
+    }
+  }
+
+  /**
+   * Handle add bookmark hotkey
+   */
+  async handleAddBookmark() {
+    if (!this.playlistManager || !this.videoElement) {
+      return;
+    }
+
+    try {
+      const metadata = this.extractVideoMetadata();
+      const videoId = this.extractVideoId();
+      const timestamp = this.videoElement.currentTime;
+
+      const bookmark = await this.playlistManager.addBookmark({
+        videoId: videoId || window.location.href,
+        title: metadata.title,
+        artist: metadata.artist,
+        timestamp: timestamp,
+        note: `Bookmark at ${this.playlistManager.formatTimestamp(timestamp)}`
+      });
+
+      console.log('Bookmark added:', bookmark);
+      this.showNotification(`Bookmarked at ${this.playlistManager.formatTimestamp(timestamp)}`, 3000);
+    } catch (error) {
+      console.error('Failed to add bookmark:', error);
+      this.showNotification('Failed to add bookmark', 2000);
+    }
+  }
+
+  /**
+   * Handle open download UI hotkey
+   */
+  handleOpenDownload() {
+    // This would open a download UI modal or panel
+    console.log('Download UI requested');
+    this.showNotification('Download feature: Press D or use extension popup', 3000);
+  }
+
+  /**
+   * Show temporary notification with queue management
+   * @param {string} message - Notification message
+   * @param {number} duration - Duration in milliseconds
+   */
+  showNotification(message, duration = 2000) {
+    // Add to queue
+    this.notificationQueue.push({ message, duration });
+    
+    // Process queue if no active notification
+    if (!this.activeNotification) {
+      this.processNotificationQueue();
+    }
+  }
+
+  /**
+   * Process notification queue
+   */
+  processNotificationQueue() {
+    if (this.notificationQueue.length === 0) {
+      return;
+    }
+
+    const { message, duration } = this.notificationQueue.shift();
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'anomtube-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2147483647;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    `;
+
+    this.activeNotification = notification;
+    document.body.appendChild(notification);
+
+    // Fade in
+    requestAnimationFrame(() => {
+      notification.style.opacity = '1';
+    });
+
+    // Fade out and remove
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      setTimeout(() => {
+        notification.remove();
+        this.activeNotification = null;
+        
+        // Process next notification in queue
+        this.processNotificationQueue();
+      }, 300);
+    }, duration);
   }
 
   applyToolbarExpansion() {
@@ -257,6 +493,16 @@ class AnomTube {
     }
     
     this.updateAdControlLoop();
+
+    // Update video element for hotkey and PiP managers
+    if (this.videoElement) {
+      if (this.hotkeyManager) {
+        this.hotkeyManager.setVideoElement(this.videoElement);
+      }
+      if (this.pipManager) {
+        this.pipManager.setVideoElement(this.videoElement);
+      }
+    }
   }
 
   deactivate() {
@@ -310,7 +556,6 @@ class AnomTube {
       const newValue = Boolean(settings.hideLyrics);
       if (this.hideLyrics !== newValue) {
         this.hideLyrics = newValue;
-        changed = true;
 
         if (this.hideLyrics) {
           this.closeLyricsWindow();
@@ -324,7 +569,6 @@ class AnomTube {
       const newValue = Boolean(settings.allowVideo);
       if (this.allowVideo !== newValue) {
         this.allowVideo = newValue;
-        changed = true;
 
         if (this.isEnabled) {
           if (this.allowVideo) {
@@ -333,6 +577,14 @@ class AnomTube {
             this.updateVideoElement();
           }
         }
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'theme')) {
+      if (this.themeManager) {
+        this.themeManager.setTheme(settings.theme).catch(err => {
+          console.warn('Failed to set theme:', err);
+        });
       }
     }
   }
@@ -498,11 +750,11 @@ class AnomTube {
 
     for (const selector of skipSelectors) {
       const skipButtons = document.querySelectorAll(selector);
-      skipButtons.forEach((skipButton) => {
+      for (const skipButton of skipButtons) {
         if (this.tryClickAdButton(skipButton)) {
           return;
         }
-      });
+      }
     }
 
     const overlayCloseButtons = document.querySelectorAll(
@@ -575,9 +827,17 @@ class AnomTube {
 
   getButtonIdentifier(button) {
     try {
-      const rect = button.getBoundingClientRect();
-      return `${button.className}_${Math.round(rect.top)}_${Math.round(rect.left)}`;
+      const aria = button.getAttribute('aria-label');
+      const text = (button.textContent || '').trim();
+      if (aria || text) {
+        return `${button.className}_${aria || text}`;
+      }
+      if (!this.buttonIds.has(button)) {
+        this.buttonIds.set(button, `el_${this.nextButtonId++}`);
+      }
+      return `${button.className}_${this.buttonIds.get(button)}`;
     } catch (error) {
+      // Fallback identifier using timestamp when attribute access fails
       return `${button.className}_${Date.now()}`;
     }
   }
@@ -782,6 +1042,8 @@ class AnomTube {
     this.videoElement = video;
     if (isNewVideo) {
       this.originalVideoDisplay = video.style.display;
+      // Initialize hotkey manager with video element
+      this.hotkeyManager.updateVideoElement(video);
     }
 
     // Only apply placeholder if allowVideo is false
@@ -796,6 +1058,16 @@ class AnomTube {
     
     if (isNewVideo && this.adPreferences.blockAds) {
       this.clearPlayerAds();
+    }
+
+    // Update video element for hotkey and PiP managers when video changes
+    if (isNewVideo) {
+      if (this.hotkeyManager) {
+        this.hotkeyManager.setVideoElement(video);
+      }
+      if (this.pipManager) {
+        this.pipManager.setVideoElement(video);
+      }
     }
 
     return { changed: isNewVideo, hasVideo: true };
@@ -1972,6 +2244,194 @@ class AnomTube {
     window.removeEventListener('popstate', this.navigationListener);
     this.navigationListenerAttached = false;
     this.navigationListener = null;
+  }
+
+  openPlaylistManager() {
+    // Create playlist manager UI
+    let playlistUI = document.getElementById('anomtube-playlist-manager');
+    
+    if (!playlistUI) {
+      playlistUI = this.createPlaylistManagerUI();
+      document.body.appendChild(playlistUI);
+    } else {
+      playlistUI.style.display = playlistUI.style.display === 'none' ? 'block' : 'none';
+    }
+
+    if (playlistUI.style.display !== 'none') {
+      this.updatePlaylistUI();
+    }
+  }
+
+  createPlaylistManagerUI() {
+    const panel = document.createElement('div');
+    panel.id = 'anomtube-playlist-manager';
+    panel.style.cssText = `
+      position: fixed;
+      top: 80px;
+      left: 20px;
+      width: 360px;
+      max-height: 600px;
+      background: linear-gradient(135deg, rgba(10, 14, 26, 0.98) 0%, rgba(18, 24, 43, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      z-index: 999997;
+      backdrop-filter: blur(20px);
+      font-family: 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+      color: #f8faff;
+      overflow-y: auto;
+    `;
+
+    panel.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; font-size: 16px; letter-spacing: 1.5px; text-transform: uppercase;">Soittolistat & Kirjanmerkit</h3>
+        <button id="anomtube-playlist-close" style="
+          background: transparent;
+          border: none;
+          color: #f8faff;
+          font-size: 20px;
+          cursor: pointer;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">×</button>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <button id="anomtube-add-bookmark" style="
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(135deg, rgba(120, 174, 255, 0.3), rgba(176, 120, 255, 0.3));
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 10px;
+          color: #f8faff;
+          font-size: 13px;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          cursor: pointer;
+          font-weight: 600;
+        ">📌 Lisää kirjanmerkki</button>
+      </div>
+
+      <div id="anomtube-bookmarks-list" style="
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+      ">
+        <div style="font-size: 12px; opacity: 0.6; text-align: center;">Ei kirjanmerkkejä</div>
+      </div>
+
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+        <p style="font-size: 11px; opacity: 0.6; margin: 0; line-height: 1.5;">
+          Kirjanmerkit tallennetaan automaattisesti. Klikkaa kirjanmerkkiä hypätäksesi aikaleimaan.
+        </p>
+      </div>
+    `;
+
+    const closeBtn = panel.querySelector('#anomtube-playlist-close');
+    closeBtn.addEventListener('click', () => {
+      panel.style.display = 'none';
+    });
+
+    const addBookmarkBtn = panel.querySelector('#anomtube-add-bookmark');
+    addBookmarkBtn.addEventListener('click', () => {
+      if (this.videoElement) {
+        const videoInfo = this.playlistManager.getCurrentVideoInfo();
+        const timestamp = this.videoElement.currentTime;
+        const bookmark = this.playlistManager.createBookmark(
+          videoInfo.videoId,
+          videoInfo.title,
+          timestamp,
+          `Bookmark at ${this.playlistManager.formatTimestamp(timestamp)}`
+        );
+        this.updatePlaylistUI();
+        this.showNotification(`Kirjanmerkki lisätty: ${this.playlistManager.formatTimestamp(timestamp)}`);
+      }
+    });
+
+    return panel;
+  }
+
+  updatePlaylistUI() {
+    const videoId = new URLSearchParams(window.location.search).get('v');
+    if (!videoId) return;
+
+    const bookmarks = this.playlistManager.getBookmarksByVideo(videoId);
+    const bookmarksList = document.getElementById('anomtube-bookmarks-list');
+    
+    if (!bookmarksList) return;
+
+    if (bookmarks.length === 0) {
+      bookmarksList.innerHTML = '<div style="font-size: 12px; opacity: 0.6; text-align: center;">Ei kirjanmerkkejä tälle videolle</div>';
+      return;
+    }
+
+    bookmarksList.innerHTML = bookmarks.map(bookmark => `
+      <div style="
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+      " data-bookmark-id="${bookmark.id}">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">
+          ${this.playlistManager.formatTimestamp(bookmark.timestamp)}
+        </div>
+        <div style="font-size: 11px; opacity: 0.7;">
+          ${bookmark.note}
+        </div>
+      </div>
+    `).join('');
+
+    // Add click listeners
+    bookmarksList.querySelectorAll('[data-bookmark-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const bookmarkId = el.dataset.bookmarkId;
+        if (this.videoElement) {
+          this.playlistManager.jumpToBookmark(bookmarkId, this.videoElement);
+        }
+      });
+
+      el.addEventListener('mouseenter', () => {
+        el.style.background = 'rgba(108, 168, 255, 0.2)';
+      });
+
+      el.addEventListener('mouseleave', () => {
+        el.style.background = 'rgba(255, 255, 255, 0.05)';
+      });
+    });
+  }
+
+  showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      background: linear-gradient(135deg, rgba(120, 174, 255, 0.95), rgba(176, 120, 255, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 999999;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      font-family: 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
   }
 }
 

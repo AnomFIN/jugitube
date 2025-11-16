@@ -1,276 +1,206 @@
-# Changelog v2.2.0 - MVP Features Bundle
+# Changelog - Version 2.2.0
 
-## Release Date: 2024-11-04
+## AnomTube v2.2.0 - Feature Bundle Release
+**Release Date**: November 2024
 
-## Overview
-This release introduces a comprehensive MVP bundle of new features including window state persistence, global hotkeys, playlists & bookmarks, PiP support, theme toggle, and an optional download backend.
+### 🎉 Major New Features
 
-## New Features
+#### 1. Keyboard Shortcuts (Hotkeys)
+- **Space**: Play/Pause video
+- **← →**: Seek backward/forward 5 seconds
+- **↑ ↓**: Volume control with visual indicator
+- **D**: Toggle download panel
+- **T**: Toggle theme (Light/Dark)
+- **P**: Toggle Picture-in-Picture mode
+- Smart detection to prevent conflicts with input fields
+- Volume indicator overlay shows current volume level
 
-### 🪟 Window State Persistence
-- **Window State Manager**: Remembers lyrics console position and size across sessions
-- Saves position to chrome.storage.local automatically on drag
-- Restores last known position on page load
-- Prevents window from appearing off-screen
-- **Module**: `src/js/windowState.js`
-
-### ⌨️ Global Hotkeys System
-- **Hotkeys Manager**: Comprehensive keyboard control system
-- **Supported Hotkeys**:
-  - `Space`: Play/Pause video
-  - `←`: Seek backward 5 seconds
-  - `→`: Seek forward 5 seconds
-  - `↑`: Volume up 10%
-  - `↓`: Volume down 10%
-  - `D`: Open download dialog
-  - `T`: Toggle light/dark theme
-  - `P`: Toggle Picture-in-Picture mode
-  - `B`: Create bookmark at current timestamp
-- Intelligent detection to avoid interfering with input fields
-- **Module**: `src/js/hotkeys.js`
-
-### 📋 Playlists & Bookmarks
-- **Playlists Manager**: Full CRUD operations for video playlists
-- **Create Playlists**: Organize videos into custom collections
-- **Bookmarks**: Save video timestamps with notes
-- **Jump-to Feature**: Click bookmark to jump to exact timestamp
-- All data stored locally in chrome.storage.local
-- Persistent across browser sessions
-- **Module**: `src/js/playlists.js`
-
-### 🖼️ Picture-in-Picture Support
-- **PiP Manager**: HTML5 Picture-in-Picture support
-- Enter/exit PiP with `P` hotkey
-- Video floats on top of other windows
-- Works across all tabs
-- Browser support check included
-- **Module**: `src/js/pip.js`
-
-### 🎨 Theme Toggle
-- **Theme Manager**: Light and dark theme support
-- Toggle with `T` hotkey
-- Theme persists across sessions
+#### 2. Theme System
+- Light and Dark theme support
+- Theme toggle button in popup (or press T)
+- Persists theme preference across sessions
 - Applies to all UI elements:
+  - Popup interface
   - Lyrics console
-  - Video placeholder
-  - Download dialog
-- Smooth theme transitions
-- **Module**: `src/js/pip.js`
+  - Download panel
+  - Playlist manager
+- Uses CSS variables for easy customization
+- Respects system color scheme preference
 
-### ⬇️ Download Support (Optional Backend)
-- **Download Manager**: Frontend UI for video/audio downloads
-- **Backend Server**: Node.js/Express server with yt-dlp
-- **Formats**: MP4 (video) and MP3 (audio)
-- **Quality Options**: Low, Medium, High
-- **Streaming Downloads**: Files stream directly to browser
-- **Rate Limiting**: 10 requests/minute per IP
-- **Concurrent Limit**: Max 3 simultaneous downloads
-- **Timeout**: 5 minutes per download
-- **Features**:
-  - Progress indication
-  - Error handling
-  - Automatic filename detection
-  - Health check endpoint
-  - Dependency verification
-- **Modules**: 
-  - Frontend: `src/js/download.js`
-  - Backend: `backend/server.js`
+#### 3. Bookmarks & Playlists
+- **Bookmark Manager**: Save important moments in videos
+- Add bookmarks with current timestamp
+- Jump to bookmarks with single click
+- Bookmarks stored per video
+- Persistent storage using chrome.storage.local
+- Visual bookmark panel with:
+  - Timestamp display
+  - Custom notes
+  - Easy management
+- Export/import functionality (planned)
 
-### 📱 Responsive UI Enhancements
-- **Responsive CSS**: Mobile-first approach with breakpoints
-- **Breakpoints**:
-  - Mobile: < 768px - Collapsed sidebar, full-width console
-  - Tablet: 768px-1023px - Narrow sidebar, adjusted console
-  - Desktop: >= 1024px - Full sidebar, optimized layout
-- **Flexbox & Grid Layouts**: Modern layout utilities
-- **Collapsible Sidebar**: Auto-hide on mobile viewports
-- **Touch-Friendly**: Larger tap targets for mobile
-- **Module**: `src/css/responsive.css`
+#### 4. Picture-in-Picture (PiP)
+- Native browser PiP support
+- Toggle via popup button or P key
+- Video floats above other windows
+- Works seamlessly with audio-only mode
+- Automatic state management
 
-### 🐳 Docker Support
-- Dockerfile for backend containerization
-- Multi-stage build for production
-- Includes yt-dlp and ffmpeg dependencies
-- Health check configuration
-- Non-root user for security
-- **File**: `Dockerfile`
+#### 5. Download Manager
+- Comprehensive download UI panel
+- Format selection:
+  - MP3 (audio only)
+  - MP4 (video)
+- Quality options:
+  - Low (faster downloads)
+  - Medium (balanced)
+  - High (best quality)
+- Progress indicators
+- Settings persistence
+- Integration with chrome.downloads API
+- Note: Direct YouTube download has browser limitations
 
-## Technical Improvements
+### 🎨 UI/UX Enhancements
 
-### Architecture
-- **Modular Design**: Each feature in separate module
-- **Feature Loader**: Dynamic module initialization
-- **Chrome Storage API**: Consistent data persistence
-- **Event-Driven**: Decoupled component communication
-- **Error Handling**: Comprehensive try-catch blocks
+#### Popup Interface
+- New "Ominaisuudet" (Features) section
+- Theme toggle button
+- PiP button
+- Download button
+- Playlist manager button
+- Keyboard shortcuts reference card
+- Better organization of controls
+- More intuitive layout
 
-### Performance
-- **Lazy Loading**: Modules load only when needed
-- **Memory Efficient**: No memory leaks detected
-- **CPU Optimized**: Minimal CPU usage when idle
-- **Storage Optimized**: Efficient chrome.storage usage
+#### Responsive Design
+- New `responsive.css` for better mobile support
+- Media queries for different screen sizes:
+  - Mobile (< 480px)
+  - Tablet (< 768px)
+  - Desktop (> 768px)
+- Touch-friendly buttons (min 44px)
+- Adaptive text sizing
+- Optimized panel positioning on small screens
+- Landscape orientation support
+- High DPI display optimization
+- Print-friendly styles
 
-### Code Quality
-- **JSDoc Comments**: Full API documentation
-- **Consistent Style**: Unified coding standards
-- **Error Messages**: Clear, user-friendly messages
-- **Fallbacks**: Graceful degradation for unsupported features
+### 🏗️ Technical Improvements
 
-## Documentation
+#### Architecture
+- **Modular Design**: New manager classes
+  - `HotkeyManager`: Keyboard shortcut handling
+  - `ThemeManager`: Theme switching and persistence
+  - `PlaylistManager`: Playlist and bookmark CRUD
+  - `DownloadManager`: Download UI and logic
+- Better separation of concerns
+- Improved code maintainability
 
-### New Documentation Files
-- **MANUAL_TEST_GUIDE.md**: Comprehensive testing instructions
-  - 10 test sections
-  - 70+ individual test cases
-  - Performance tests
-  - Regression tests
-  - Bug reporting template
-- **backend/README.backend.md**: Backend server documentation
-  - Installation instructions
-  - API documentation
-  - curl examples
-  - Troubleshooting guide
-  - Security notes
-- **Updated README.md**: 
-  - New features section
-  - Hotkeys table
-  - Playlists & bookmarks guide
-  - Download support instructions
-  - Docker deployment guide
-  - Updated file structure
+#### Storage
+- Enhanced use of chrome.storage API
+- Separate sync and local storage strategies
+- Efficient data persistence
+- Automatic state restoration
 
-### Code Documentation
-- All new modules have comprehensive JSDoc comments
-- Each function documented with parameters and return types
-- Usage examples included in comments
-- Error conditions documented
+#### Event Handling
+- Improved message passing between popup and content script
+- Better event listener management
+- Proper cleanup on deactivation
 
-## Files Added
+#### Browser APIs
+- Integration with native PiP API
+- Chrome downloads API support
+- Better permission handling
 
-### JavaScript Modules
-- `src/js/windowState.js` - Window state persistence
-- `src/js/hotkeys.js` - Hotkeys management
-- `src/js/playlists.js` - Playlists & bookmarks
-- `src/js/pip.js` - PiP and theme managers
-- `src/js/download.js` - Download UI manager
-- `src/content/feature-loader.js` - Module integration
+### 📦 Files Added
 
-### Stylesheets
-- `src/css/responsive.css` - Responsive design styles
+#### New Modules
+- `modules/hotkeys.js` (182 lines)
+- `modules/themeManager.js` (119 lines)
+- `modules/playlistManager.js` (213 lines)
+- `modules/downloadManager.js` (298 lines)
 
-### Backend
-- `backend/server.js` - Express server with yt-dlp
-- `backend/package.json` - Backend dependencies
-- `backend/README.backend.md` - Backend documentation
-- `backend/.gitignore` - Backend gitignore
+#### New Styles
+- `src/css/responsive.css` (175 lines)
 
-### Configuration
-- `Dockerfile` - Container configuration
+### 🔧 Files Modified
 
-### Documentation
-- `MANUAL_TEST_GUIDE.md` - Testing guide
-
-## Files Modified
-
-### Configuration Files
+#### Configuration
 - `manifest.json`:
-  - Updated version to 2.2.0
-  - Added new content scripts
-  - Added responsive.css
-  - Updated description
+  - Version bumped to 2.2.0
+  - Added `downloads` permission
+  - Included new modules in content_scripts
 
-### Documentation
+#### Core Files
+- `content.js`:
+  - Integrated new managers
+  - Added message handlers for new actions
+  - Added playlist manager UI methods
+  - Enhanced initialization
+
+- `background.js`:
+  - Added download request handler
+  - Better message routing
+
+- `popup.html`:
+  - New feature section with buttons
+  - Keyboard shortcuts reference
+  - Better organization
+
+- `popup.js`:
+  - Event handlers for new buttons
+  - Message sending for actions
+
 - `README.md`:
-  - Added new features section
-  - Added hotkeys documentation
-  - Added playlists & bookmarks guide
-  - Added download support section
-  - Added Docker deployment guide
+  - Comprehensive documentation for all new features
+  - Keyboard shortcuts table
+  - Usage instructions
   - Updated file structure
 
-## Dependencies
+### 🐛 Bug Fixes
+- Fixed potential race conditions in module initialization
+- Improved error handling in download manager
+- Better cleanup on extension disable
 
-### Extension (No new dependencies)
-- Uses existing Chrome Extension APIs
-- No external libraries required
+### ⚡ Performance
+- Lazy loading of UI panels (only created when needed)
+- Efficient storage queries
+- Optimized event listener attachment
 
-### Backend (New)
-- express@^4.18.2
-- express-rate-limit@^7.1.5
-- cors@^2.8.5
-- nodemon@^3.0.2 (dev)
+### 🔒 Security
+- Sanitized file names for downloads
+- Proper permission checks
+- No sensitive data exposure
 
-### System Requirements (Backend)
-- Node.js 16+
-- yt-dlp (pip install)
-- ffmpeg (apt/brew install)
+### 📱 Compatibility
+- Chrome 88+ (recommended: latest version)
+- Edge 88+
+- Other Chromium-based browsers
+- Requires Manifest V3 support
 
-## Breaking Changes
-None. All new features are backward compatible.
+### 🎯 Known Limitations
+- Browser extension download capabilities are limited
+- Direct YouTube video download may require external tools
+- Some features require specific browser permissions
+- PiP availability depends on browser support
 
-## Deprecations
-None.
+### 📝 Migration Notes
+- No breaking changes from v2.1.0
+- All existing settings preserved
+- Automatic migration of storage keys
+- New permissions requested on update
 
-## Bug Fixes
-- Fixed window state persistence edge cases
-- Improved hotkey conflict detection
-- Better error handling in download manager
-- Theme toggle edge cases resolved
+### 🔮 Future Plans
+- Playlist creation and management
+- Advanced download options with backend support
+- Custom theme creation
+- Backup/restore functionality
+- Sync across devices
+- More keyboard shortcuts
+- Advanced bookmark features
 
-## Known Issues
-- PiP not supported in older browsers (feature detection included)
-- Backend download requires yt-dlp and ffmpeg to be installed
-- Some mobile browsers may have limited PiP support
-
-## Migration Guide
-No migration required. Extension will automatically:
-1. Initialize new feature modules
-2. Load saved window state (if available)
-3. Apply saved theme (default: dark)
-4. Create empty playlists/bookmarks storage
-
-## Testing
-- Comprehensive manual test guide created
-- 70+ test cases covering all features
-- Performance tests included
-- Regression tests for existing features
-- Browser compatibility tests
-
-## Security
-- Backend rate limiting prevents abuse
-- Non-root Docker user for security
-- Input validation on all API endpoints
-- CORS enabled for localhost only
-- No sensitive data exposed
-
-## Performance Impact
-- **Memory**: < 50MB additional (all features enabled)
-- **CPU**: < 2% when idle
-- **Storage**: < 1MB for playlists/bookmarks
-- **Page Load**: < 100ms additional load time
-
-## Browser Compatibility
-Tested and working on:
-- Chrome 100+ ✅
-- Edge 100+ ✅
-- Brave (Chromium-based) ✅
-
-## Future Enhancements
-Potential future additions:
-- Cloud sync for playlists
-- Playlist import/export
-- Batch download support
-- Audio equalizer
-- Custom hotkey configuration
-- Playlist sharing
-
-## Credits
-- Developed by: jugi@AnomFIN
-- AnomFIN Tools Team
-- Contributors welcome!
-
-## License
-MIT License (unchanged)
+### 🙏 Acknowledgments
+This release adds comprehensive features while maintaining the core audio-only YouTube experience. Special thanks to all users providing feedback!
 
 ---
 
