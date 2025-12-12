@@ -27,3 +27,22 @@ Manual test checklist (MVP bundle):
 Notes:
 - Backend requires yt-dlp and ffmpeg on PATH.
 - For production: add auth, persistent job queue, and more strict rate-limiting.
+
+## Setup & Run
+- Install deps: `npm install`
+- Run backend (optional downloads): `cd backend && npm install && node server.js`
+- Run width utils test: `node --test tests/toolbarWidth.test.js`
+
+## Adjustable toolbar width
+- Open the extension options page and use **Toolbar Width** slider (200–360px) to resolve layout widths without editing code.
+- Toggle **Expand Toolbar** to snap to a wider preset; slider keeps the exact width for fine tuning.
+
+## Why this design
+- Local-first settings stored via `localStorage` to avoid extra permissions.
+- Slider-driven width normalization clamps values for safety and predictable CSS.
+- Single source-of-truth width helpers reused across UI and content scripts.
+- Minimal UI: one slider + checkbox instead of nested dialogs.
+
+## TODO
+- Mirror toolbar width control inside the popup for quicker access.
+- Add visual preview of toolbar width on the options page.
