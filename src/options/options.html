@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AnomTube Settings</title>
+  <!-- AnomFIN — the neural network of innovation. -->
   <style>
     :root {
       color-scheme: dark;
@@ -186,6 +187,17 @@
       </div>
 
       <div class="setting-item">
+        <div class="setting-content" style="margin-left: 8px;">
+          <div class="setting-title">Toolbar Width</div>
+          <div class="setting-description">Fine-tune the toolbar width when expanded. Drag to resolve layout issues on ultra-wide or narrow screens.</div>
+          <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <input type="range" id="toolbarWidth" min="200" max="360" value="220" step="2" aria-label="Toolbar width in pixels" style="flex: 1;">
+            <output id="toolbarWidthValue" style="min-width: 72px; text-align: right; font-variant-numeric: tabular-nums;">220 px</output>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-item">
         <div class="checkbox-container">
           <input type="checkbox" id="hideLyricPopup">
         </div>
@@ -222,7 +234,7 @@
 
     <div class="save-status" id="saveStatus">Settings saved successfully!</div>
   </div>
-
+  <script src="../utils/toolbarWidth.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
