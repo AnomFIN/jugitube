@@ -1,0 +1,298 @@
+/* Theme Styles for AnomTube Extension */
+/* Light and Dark theme definitions */
+
+/* Default dark theme (already defined in content.css) */
+body.anomtube-theme-dark,
+body:not([class*="anomtube-theme"]) {
+  /* Dark theme is the default - no changes needed */
+}
+
+/* Light theme overrides */
+body.anomtube-theme-light {
+  /* Light theme adjustments for placeholder */
+}
+
+body.anomtube-theme-light #anomtube-placeholder {
+  background: linear-gradient(160deg, rgba(240, 242, 252, 0.98) 0%, rgba(225, 232, 248, 0.98) 52%, rgba(235, 240, 250, 0.98) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 38px 120px rgba(100, 110, 140, 0.3);
+}
+
+body.anomtube-theme-light #anomtube-placeholder::before {
+  filter: blur(38px) saturate(110%);
+  opacity: 0.35;
+}
+
+body.anomtube-theme-light #anomtube-placeholder::after {
+  background: radial-gradient(circle at 18% 12%, rgba(59, 130, 246, 0.25), transparent 62%),
+    radial-gradient(circle at 78% 82%, rgba(251, 146, 60, 0.2), transparent 70%),
+    linear-gradient(140deg, rgba(248, 250, 252, 0.7), rgba(241, 245, 249, 0.9));
+  mix-blend-mode: normal;
+  opacity: 0.95;
+}
+
+body.anomtube-theme-light .anomtube-overlay {
+  color: #0f172a;
+}
+
+body.anomtube-theme-light .anomtube-audio-only {
+  color: #1e293b;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.98));
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 32px 120px rgba(100, 110, 140, 0.35);
+}
+
+body.anomtube-theme-light .anomtube-audio-only::before {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  opacity: 0.8;
+}
+
+body.anomtube-theme-light .anomtube-audio-only::after {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  opacity: 0.5;
+}
+
+body.anomtube-theme-light .anomtube-chip {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.25));
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #1e40af;
+  box-shadow: 0 18px 40px rgba(59, 130, 246, 0.2);
+}
+
+body.anomtube-theme-light .anomtube-brand-badge {
+  background: linear-gradient(120deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.9));
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 24px 55px rgba(100, 110, 140, 0.25);
+}
+
+body.anomtube-theme-light .anomtube-brand-primary {
+  color: #0f172a;
+}
+
+body.anomtube-theme-light .anomtube-brand-secondary {
+  opacity: 0.65;
+  color: #475569;
+}
+
+body.anomtube-theme-light .anomtube-title {
+  color: #0f172a;
+  text-shadow: 0 30px 65px rgba(100, 110, 140, 0.25);
+}
+
+body.anomtube-theme-light .anomtube-subtitle {
+  color: #334155;
+  opacity: 0.85;
+}
+
+body.anomtube-theme-light .anomtube-divider {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.15), transparent);
+}
+
+body.anomtube-theme-light .anomtube-feature {
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.7), rgba(248, 250, 252, 0.75));
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 40px rgba(100, 110, 140, 0.15);
+}
+
+body.anomtube-theme-light .anomtube-feature__title {
+  color: #1e293b;
+}
+
+body.anomtube-theme-light .anomtube-feature__description {
+  color: #475569;
+  opacity: 0.85;
+}
+
+body.anomtube-theme-light .anomtube-note {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #1e40af;
+}
+
+body.anomtube-theme-light .anomtube-credit {
+  color: #475569;
+}
+
+body.anomtube-theme-light .anomtube-credit strong {
+  color: #d97706;
+}
+
+/* Light theme for lyrics console */
+body.anomtube-theme-light #anomfin-lyrics-console .anomfin-lyrics__panel {
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 28px 60px rgba(100, 110, 140, 0.35);
+  color: #0f172a;
+}
+
+body.anomtube-theme-light #anomfin-lyrics-console .anomfin-lyrics__panel::before {
+  background-image: linear-gradient(145deg, rgba(219, 234, 254, 0.7), rgba(241, 245, 249, 0.9)),
+    var(--anomfin-background, radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.2), transparent 62%));
+  filter: blur(24px);
+  opacity: 0.5;
+}
+
+body.anomtube-theme-light #anomfin-lyrics-console .anomfin-lyrics__panel::after {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.92) 55%, rgba(248, 250, 252, 0.95) 100%);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__brand-title {
+  color: #0f172a;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__brand-subtitle {
+  color: #475569;
+  opacity: 0.8;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__btn {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #1e40af;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__btn:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__btn--retry {
+  background: rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.4);
+  color: #be185d;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__btn--retry:hover {
+  background: rgba(236, 72, 153, 0.25);
+  border-color: rgba(236, 72, 153, 0.6);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__song {
+  color: #0f172a;
+  text-shadow: 0 12px 24px rgba(100, 110, 140, 0.2);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__artist {
+  color: #475569;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__status {
+  color: #64748b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__status-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.7);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__status[data-variant='ready'] .anomfin-lyrics__status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.7);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__status[data-variant='error'] .anomfin-lyrics__status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__status[data-variant='empty'] .anomfin-lyrics__status-dot {
+  background: #eab308;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.7);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__lines {
+  scrollbar-color: rgba(59, 130, 246, 0.5) transparent;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__lines::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.3);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__lines::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.6), rgba(37, 99, 235, 0.6));
+}
+
+body.anomtube-theme-light .anomfin-lyrics__line {
+  background: rgba(241, 245, 249, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #334155;
+  opacity: 0.7;
+  box-shadow: 0 12px 24px rgba(100, 110, 140, 0.15);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__line--current {
+  opacity: 1;
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  color: #1e40af;
+  box-shadow: 0 24px 45px rgba(59, 130, 246, 0.25);
+}
+
+body.anomtube-theme-light .anomfin-lyrics__line--next {
+  opacity: 0.9;
+  border-color: rgba(0, 0, 0, 0.2);
+  color: #1e293b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__placeholder {
+  background: rgba(241, 245, 249, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #475569;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__placeholder--error {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(254, 226, 226, 0.6);
+  color: #991b1b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__captions {
+  background: rgba(241, 245, 249, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #334155;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__captions-header {
+  color: #475569;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__captions-pill {
+  background: rgba(59, 130, 246, 0.25);
+  color: #1e40af;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__captions-feed {
+  color: #1e293b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__captions-hint {
+  color: #64748b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__footer {
+  color: #64748b;
+}
+
+body.anomtube-theme-light .anomfin-lyrics__footer strong {
+  color: #d97706;
+}
+
+/* Smooth theme transition */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#anomtube-placeholder,
+.anomtube-audio-only,
+#anomfin-lyrics-console .anomfin-lyrics__panel,
+.anomfin-lyrics__line,
+.anomfin-lyrics__btn {
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Respect user's color scheme preference if no theme set */
+@media (prefers-color-scheme: light) {
+  body:not([class*="anomtube-theme"]) {
+    /* Apply light theme automatically if user prefers light mode */
+  }
+}
