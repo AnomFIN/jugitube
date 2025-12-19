@@ -550,8 +550,6 @@ class AnomTube {
   }
 
   updateSettings(settings = {}) {
-    let changed = false;
-
     if (Object.prototype.hasOwnProperty.call(settings, 'hideLyrics')) {
       const newValue = Boolean(settings.hideLyrics);
       if (this.hideLyrics !== newValue) {
