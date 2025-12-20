@@ -164,6 +164,49 @@
       border: 1px solid rgba(80, 243, 192, 0.45);
       color: var(--base-text);
     }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      min-width: 150px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(120deg, var(--accent-primary), var(--accent-secondary));
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(120deg, var(--accent-primary), var(--accent-secondary));
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 12px rgba(108, 168, 255, 0.6);
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 12px rgba(108, 168, 255, 0.6);
+    }
   </style>
 </head>
 <body>
@@ -190,9 +233,9 @@
         <div class="setting-content" style="margin-left: 8px;">
           <div class="setting-title">Toolbar Width</div>
           <div class="setting-description">Fine-tune the toolbar width when expanded. Drag to resolve layout issues on ultra-wide or narrow screens.</div>
-          <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <input type="range" id="toolbarWidth" min="200" max="360" value="220" step="2" aria-label="Toolbar width in pixels" style="flex: 1;">
-            <output id="toolbarWidthValue" style="min-width: 72px; text-align: right; font-variant-numeric: tabular-nums;">220 px</output>
+          <div style="margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%;">
+            <input type="range" id="toolbarWidth" min="200" max="360" value="220" step="2" aria-label="Toolbar width in pixels">
+            <output id="toolbarWidthValue" style="min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0;">220 px</output>
           </div>
         </div>
       </div>
