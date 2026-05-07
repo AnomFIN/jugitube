@@ -1,4 +1,5 @@
 // Popup script for AnomTube extension
+// Engineered for autonomy, designed for humans.
 document.addEventListener('DOMContentLoaded', async () => {
   const toggle = document.getElementById('enableToggle');
   const status = document.getElementById('status');
@@ -18,6 +19,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const themeToggle = document.getElementById('themeToggle');
   const addBookmarkBtn = document.getElementById('addBookmarkBtn');
   const togglePipBtn = document.getElementById('togglePipBtn');
+  const autoClickSkipAdsToggle = document.getElementById('autoClickSkipAdsToggle');
+  const allowVideoKeepAdSettingsToggle = document.getElementById('allowVideoKeepAdSettingsToggle');
+  const hidePopupCompletelyToggle = document.getElementById('hidePopupCompletelyToggle');
+  const expandToolbarToggle = document.getElementById('expandToolbarToggle');
   const defaultLogoUrl = chrome.runtime.getURL('logo.png');
 
   function updateStatus(enabled) {
@@ -31,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function updatePreview(previewEl, dataUrl, { fallbackUrl = null, emptyLabel = 'Ei kuvaa' } = {}) {
+    if (!previewEl) return;
     const url = dataUrl || fallbackUrl;
     if (url) {
       previewEl.style.backgroundImage = `url("${url}")`;
@@ -56,19 +62,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function setChecked(element, value) {
+    if (element) element.checked = !!value;
+  }
+
+  function bindChange(element, handler) {
+    if (!element) return;
+    element.addEventListener('change', handler);
+  }
+
+  function bindClick(element, handler) {
+    if (!element) return;
+    element.addEventListener('click', handler);
+  }
+
   async function loadState() {
-    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false, hideLyrics = false, allowVideo = false, theme = 'dark' }, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo', 'theme']),
+    const [{ enabled = false, muteAds = false, skipAds = false, blockAds = false, hideLyrics = false, allowVideo = false, theme = 'dark', autoClickSkipAds = false, allowVideoKeepAdSettings = false, hidePopupCompletely = false, expandToolbar = true }, assets] = await Promise.all([
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo', 'theme', 'autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar']),
       chrome.storage.local.get(['customBackground', 'customLogo'])
     ]);
 
-    toggle.checked = !!enabled;
-    muteAdsToggle.checked = !!muteAds;
-    skipAdsToggle.checked = !!skipAds;
-    blockAdsToggle.checked = !!blockAds;
-    hideLyricsToggle.checked = !!hideLyrics;
-    allowVideoToggle.checked = !!allowVideo;
-    themeToggle.checked = theme === 'light';
+    setChecked(toggle, enabled);
+    setChecked(muteAdsToggle, muteAds);
+    setChecked(skipAdsToggle, skipAds);
+    setChecked(blockAdsToggle, blockAds);
+    setChecked(hideLyricsToggle, hideLyrics);
+    setChecked(allowVideoToggle, allowVideo);
+    setChecked(themeToggle, theme === 'light');
+    setChecked(autoClickSkipAdsToggle, autoClickSkipAds);
+    setChecked(allowVideoKeepAdSettingsToggle, allowVideoKeepAdSettings);
+    setChecked(hidePopupCompletelyToggle, hidePopupCompletely);
+    setChecked(expandToolbarToggle, expandToolbar);
     updateStatus(!!enabled);
 
     updatePreview(backgroundPreview, assets.customBackground || null, {
@@ -91,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function bindFileInput(inputEl, storageKey, previewEl, options = {}) {
+    if (!inputEl || !previewEl) return;
     inputEl.addEventListener('change', () => {
       const file = inputEl.files && inputEl.files[0];
       if (!file) {
@@ -109,6 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function bindSelectButton(buttonEl, inputEl) {
+    if (!buttonEl || !inputEl) return;
     buttonEl.addEventListener('click', (event) => {
       event.preventDefault();
       inputEl.click();
@@ -116,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function bindResetButton(buttonEl, storageKey, previewEl, options = {}) {
+    if (!buttonEl || !previewEl) return;
     buttonEl.addEventListener('click', async (event) => {
       event.preventDefault();
       await storeAsset(storageKey, null);
@@ -127,8 +154,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
 
   // Handle toggle change
-  toggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
+  bindChange(toggle, async (event) => {
+    const enabled = event.target.checked;
 
     await chrome.storage.sync.set({ enabled });
     updateStatus(enabled);
@@ -138,72 +165,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  function buildAdPreferencePayload() {
+  function buildSettingsPayload(extra = {}) {
     return {
-      action: 'updateSettings',
-      settings: {
-        muteAds: !!muteAdsToggle.checked,
-        skipAds: !!skipAdsToggle.checked,
-        blockAds: !!blockAdsToggle.checked,
-        autoClickSkipAds: !!autoClickSkipAdsToggle.checked,
-        allowVideoKeepAdSettings: !!allowVideoKeepAdSettingsToggle.checked,
-        hidePopupCompletely: !!hidePopupCompletelyToggle.checked,
-        expandToolbar: !!expandToolbarToggle.checked
-      }
+      muteAds: !!muteAdsToggle?.checked,
+      skipAds: !!skipAdsToggle?.checked,
+      blockAds: !!blockAdsToggle?.checked,
+      hideLyrics: !!hideLyricsToggle?.checked,
+      allowVideo: !!allowVideoToggle?.checked,
+      autoClickSkipAds: !!autoClickSkipAdsToggle?.checked,
+      allowVideoKeepAdSettings: !!allowVideoKeepAdSettingsToggle?.checked,
+      hidePopupCompletely: !!hidePopupCompletelyToggle?.checked,
+      expandToolbar: expandToolbarToggle ? !!expandToolbarToggle.checked : true,
+      ...extra
     };
-  }
-
-  async function handleSettingChange(key, value) {
-    await chrome.storage.sync.set({ [key]: value });
-    await notifyActiveTab(buildAdPreferencePayload());
   }
 
   async function handleSettingChange(key, value) {
     await chrome.storage.sync.set({ [key]: value });
     await notifyActiveTab({
       action: 'updateSettings',
-      settings: { [key]: value }
+      settings: buildSettingsPayload({ [key]: value })
     });
   }
 
-  muteAdsToggle.addEventListener('change', (event) => {
-    handleSettingChange('muteAds', event.target.checked);
-  });
-
-  skipAdsToggle.addEventListener('change', (event) => {
-    handleSettingChange('skipAds', event.target.checked);
-  });
-
-  blockAdsToggle.addEventListener('change', (event) => {
-    handleSettingChange('blockAds', event.target.checked);
-  });
-
-  autoClickSkipAdsToggle.addEventListener('change', (event) => {
-    handleSettingChange('autoClickSkipAds', event.target.checked);
-  });
-
-  allowVideoKeepAdSettingsToggle.addEventListener('change', (event) => {
-    handleSettingChange('allowVideoKeepAdSettings', event.target.checked);
-  });
-
-  hidePopupCompletelyToggle.addEventListener('change', (event) => {
-    handleSettingChange('hidePopupCompletely', event.target.checked);
-  });
-
-  expandToolbarToggle.addEventListener('change', (event) => {
-    handleSettingChange('expandToolbar', event.target.checked);
-  });
-
-  hideLyricsToggle.addEventListener('change', (event) => {
-    handleSettingChange('hideLyrics', event.target.checked);
-  });
-
-  allowVideoToggle.addEventListener('change', (event) => {
-    handleSettingChange('allowVideo', event.target.checked);
-  });
+  bindChange(muteAdsToggle, (event) => handleSettingChange('muteAds', event.target.checked));
+  bindChange(skipAdsToggle, (event) => handleSettingChange('skipAds', event.target.checked));
+  bindChange(blockAdsToggle, (event) => handleSettingChange('blockAds', event.target.checked));
+  bindChange(autoClickSkipAdsToggle, (event) => handleSettingChange('autoClickSkipAds', event.target.checked));
+  bindChange(allowVideoKeepAdSettingsToggle, (event) => handleSettingChange('allowVideoKeepAdSettings', event.target.checked));
+  bindChange(hidePopupCompletelyToggle, (event) => handleSettingChange('hidePopupCompletely', event.target.checked));
+  bindChange(expandToolbarToggle, (event) => handleSettingChange('expandToolbar', event.target.checked));
+  bindChange(hideLyricsToggle, (event) => handleSettingChange('hideLyrics', event.target.checked));
+  bindChange(allowVideoToggle, (event) => handleSettingChange('allowVideo', event.target.checked));
 
   // Theme toggle handler
-  themeToggle.addEventListener('change', async (event) => {
+  bindChange(themeToggle, async (event) => {
     const theme = event.target.checked ? 'light' : 'dark';
     await chrome.storage.sync.set({ theme });
     await notifyActiveTab({
@@ -213,14 +209,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Add bookmark button
-  addBookmarkBtn.addEventListener('click', async () => {
+  bindClick(addBookmarkBtn, async () => {
     await notifyActiveTab({
       action: 'addBookmark'
     });
   });
 
   // Toggle PiP button
-  togglePipBtn.addEventListener('click', async () => {
+  bindClick(togglePipBtn, async () => {
     await notifyActiveTab({
       action: 'togglePip'
     });
@@ -267,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (downloadToggleBtn) {
     downloadToggleBtn.addEventListener('click', async () => {
-      await notifyActiveTab({ action: 'toggleDownload' });
+      await notifyActiveTab({ action: 'openDownloadMenu' });
     });
   }
 
@@ -297,32 +293,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (areaName === 'sync') {
       if (Object.prototype.hasOwnProperty.call(changes, 'enabled')) {
         const enabled = !!changes.enabled.newValue;
-        toggle.checked = enabled;
+        setChecked(toggle, enabled);
         updateStatus(enabled);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'muteAds')) {
-        muteAdsToggle.checked = !!changes.muteAds.newValue;
+        setChecked(muteAdsToggle, changes.muteAds.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'skipAds')) {
-        skipAdsToggle.checked = !!changes.skipAds.newValue;
+        setChecked(skipAdsToggle, changes.skipAds.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'blockAds')) {
-        blockAdsToggle.checked = !!changes.blockAds.newValue;
+        setChecked(blockAdsToggle, changes.blockAds.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'hideLyrics')) {
-        hideLyricsToggle.checked = !!changes.hideLyrics.newValue;
+        setChecked(hideLyricsToggle, changes.hideLyrics.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'allowVideo')) {
-        allowVideoToggle.checked = !!changes.allowVideo.newValue;
+        setChecked(allowVideoToggle, changes.allowVideo.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, 'theme')) {
-        themeToggle.checked = changes.theme.newValue === 'light';
+        setChecked(themeToggle, changes.theme.newValue === 'light');
       }
     }
   });

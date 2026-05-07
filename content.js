@@ -1,4 +1,5 @@
 // Content script for AnomTube extension
+// Commit to intelligence. Push innovation. Pull results.
 // WeakMap to store stable button IDs
 const _buttonIds = new WeakMap();
 let _nextButtonId = 1;
@@ -97,7 +98,7 @@ class AnomTube {
 
   async init() {
     const [syncState, assets] = await Promise.all([
-      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo']),
+      chrome.storage.sync.get(['enabled', 'muteAds', 'skipAds', 'blockAds', 'hideLyrics', 'allowVideo', 'autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar']),
       chrome.storage.local.get(['customBackground', 'customLogo', 'lyricsConsolePosition'])
     ]);
 
@@ -107,6 +108,10 @@ class AnomTube {
     this.adPreferences.blockAds = Boolean(syncState.blockAds);
     this.hideLyrics = Boolean(syncState.hideLyrics);
     this.allowVideo = Boolean(syncState.allowVideo);
+    this.settings.autoClickSkipAds = Boolean(syncState.autoClickSkipAds);
+    this.settings.allowVideoKeepAdSettings = Boolean(syncState.allowVideoKeepAdSettings);
+    this.settings.hidePopupCompletely = Boolean(syncState.hidePopupCompletely);
+    this.settings.expandToolbar = typeof syncState.expandToolbar === 'undefined' ? true : Boolean(syncState.expandToolbar);
     this.customAssets.background = assets.customBackground || null;
     this.customAssets.logo = assets.customLogo || null;
     this.lyricsPosition = assets.lyricsConsolePosition || null;
@@ -117,7 +122,7 @@ class AnomTube {
     await this.downloadManager.init();
 
     // Setup hotkey callbacks
-    this.hotkeyManager.on('toggleDownload', () => this.downloadManager.toggleDownloadUI());
+    this.hotkeyManager.on('toggleDownload', () => this.downloadManager.openDownloadMenu());
     this.hotkeyManager.on('toggleTheme', () => this.themeManager.toggleTheme());
 
     if (this.isEnabled) {
@@ -143,6 +148,10 @@ class AnomTube {
         this.hotkeyManager.togglePiP();
       } else if (request.action === 'toggleDownload') {
         this.downloadManager.toggleDownloadUI();
+      } else if (request.action === 'openDownloadMenu') {
+        this.downloadManager.openDownloadMenu();
+      } else if (request.action === 'startDownload') {
+        this.downloadManager.startDownload(request.options || {});
       } else if (request.action === 'openPlaylistManager') {
         this.openPlaylistManager();
       }
@@ -340,9 +349,11 @@ class AnomTube {
    * Handle open download UI hotkey
    */
   handleOpenDownload() {
-    // This would open a download UI modal or panel
-    console.log('Download UI requested');
-    this.showNotification('Download feature: Press D or use extension popup', 3000);
+    if (this.downloadManager) {
+      this.downloadManager.openDownloadMenu();
+      return;
+    }
+    this.showNotification('Download manager is not available', 3000);
   }
 
   /**
@@ -550,6 +561,26 @@ class AnomTube {
   }
 
   updateSettings(settings = {}) {
+    const adKeys = ['muteAds', 'skipAds', 'blockAds'];
+    const adPreferenceUpdates = {};
+    adKeys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        adPreferenceUpdates[key] = settings[key];
+      }
+    });
+
+    if (Object.keys(adPreferenceUpdates).length > 0) {
+      this.updateAdPreferences(adPreferenceUpdates);
+    }
+
+    ['autoClickSkipAds', 'allowVideoKeepAdSettings', 'hidePopupCompletely', 'expandToolbar'].forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        this.settings[key] = Boolean(settings[key]);
+      }
+    });
+
+    this.applyToolbarExpansion();
+
     if (Object.prototype.hasOwnProperty.call(settings, 'hideLyrics')) {
       const newValue = Boolean(settings.hideLyrics);
       if (this.hideLyrics !== newValue) {

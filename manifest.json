@@ -8,18 +8,23 @@
     "activeTab",
     "storage",
     "scripting",
-    "downloads"
+    "downloads",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://*.googleapis.com/*",
     "https://lrclib.net/*",
     "https://api.lyrics.ovh/*",
-    "https://some-random-api.ml/*"
+    "https://some-random-api.ml/*",
+    "*://youtu.be/*",
+    "http://localhost:3000/*"
   ],
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/*"],
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
       "js": [
         "modules/settings.js",
         "modules/adSkipper.js",
@@ -58,8 +63,14 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["asd.png", "logo.png", "logo_ANOMFIN_AUTOMATED_AI.png"],
-      "matches": ["*://*.youtube.com/*"]
+      "resources": [
+        "asd.png",
+        "logo.png",
+        "logo_ANOMFIN_AUTOMATED_AI.png"
+      ],
+      "matches": [
+        "*://*.youtube.com/*"
+      ]
     }
   ]
 }
